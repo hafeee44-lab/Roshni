@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Secrets are sealed with a Keystore key that does not survive a restore, so they are left
+     out rather than restored as unreadable noise. Settings and history come along. -->
+<full-backup-content>
+    <include domain="sharedpref" path="settings.xml" />
+    <include domain="database" path="history_live.db" />
+</full-backup-content>

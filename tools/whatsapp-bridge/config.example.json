@@ -1,0 +1,8 @@
+{
+  "port": 8787,
+  "sharedSecret": "change-me-to-a-long-random-string",
+  "groupJid": "",
+  "pairWithPhoneNumber": "923001234567",
+  "minSecondsBetweenMessages": 5,
+  "maxMessagesPerHour": 20
+}

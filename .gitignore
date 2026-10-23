@@ -1,0 +1,20 @@
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Pre-redesign backups. They contain the old hardcoded Solarman credentials — never commit them.
+/_backup_original/
+/_sgm_src.tgz
+/whatsapp-bridge.zip
+
+# Local AI tooling (the Impeccable design skill, hooks) — installed per machine, not shipped.
+/.claude/
+
+.kotlin/

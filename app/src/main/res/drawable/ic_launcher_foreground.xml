@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A sun with a bolt cut out of it: solar, and the moment power matters. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,24a30,30 0 1,0 0.01,0"
+        android:strokeWidth="1.6"
+        android:strokeColor="#59FFB23F"
+        android:fillColor="#00000000" />
+    <path
+        android:fillType="evenOdd"
+        android:pathData="M32,54a22,22 0 1,0 44,0a22,22 0 1,0 -44,0z M55.5,39.75L43.2,56.1H52.5L51.3,68.25L64.8,51.6H55.5Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="54"
+                android:startY="32"
+                android:endX="54"
+                android:endY="76">
+                <item android:offset="0" android:color="#FFFFD36B" />
+                <item android:offset="1" android:color="#FFFF7A2F" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M54,20.5v3.5"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:strokeColor="#FFFFB23F" />
+    <path
+        android:pathData="M84,54h3.5"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:strokeColor="#994CC9FF" />
+    <path
+        android:pathData="M20.5,54h3.5"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:strokeColor="#999B8CFF" />
+</vector>

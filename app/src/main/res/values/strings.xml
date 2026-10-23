@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Solar Grid</string>
+    <string name="widget_description">Grid state, battery and runtime at a glance</string>
+    <string name="tile_label">Grid status</string>
+</resources>
