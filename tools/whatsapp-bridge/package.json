@@ -2,7 +2,7 @@
   "name": "solar-whatsapp-bridge",
   "version": "1.0.0",
   "private": true,
-  "description": "Relays solar grid outage alerts from the SolarGridMonitor Android app into a WhatsApp group",
+  "description": "Relays solar grid outage alerts from the Roshni Android app into a WhatsApp group",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"

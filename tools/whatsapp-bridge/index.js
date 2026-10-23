@@ -117,7 +117,7 @@ async function startSocket () {
     version,
     auth: state,
     logger: pino({ level: 'silent' }),
-    browser: ['SolarGridMonitor', 'Chrome', '1.0.0'],
+    browser: ['Roshni', 'Chrome', '1.0.0'],
     markOnlineOnConnect: false
   })
 

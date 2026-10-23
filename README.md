@@ -50,6 +50,8 @@ Built for places where load-shedding is part of the day. Your inverter already s
 
 <p align="center">
   <img src="docs/screenshots/widget.png" width="180" alt="Home-screen widget">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/live-update.png" width="260" alt="Ongoing notification during a cut, with time left and battery bar">
 </p>
 
 ## Does it work with my inverter?
@@ -129,7 +131,7 @@ app/src/main/java/io/github/hafeee44lab/solargrid/
 └── ui/        Compose screens, design system, charts and the power-flow diagram
 ```
 
-Product and design intent are in [PRODUCT.md](PRODUCT.md).
+Who it's for is in [PRODUCT.md](PRODUCT.md). Colours, type, layout and component rules are in [DESIGN.md](DESIGN.md).
 
 ## Contributing
 
