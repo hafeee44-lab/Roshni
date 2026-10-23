@@ -68,6 +68,7 @@ import io.github.hafeee44lab.solargrid.data.SolarSnapshot
 import io.github.hafeee44lab.solargrid.data.ThemeMode
 import io.github.hafeee44lab.solargrid.data.changes
 import io.github.hafeee44lab.solargrid.domain.AlertKind
+import io.github.hafeee44lab.solargrid.domain.AlertSettings
 import io.github.hafeee44lab.solargrid.domain.RuntimeEstimator
 import io.github.hafeee44lab.solargrid.domain.StateRole
 import io.github.hafeee44lab.solargrid.domain.buildHomeUi
@@ -145,6 +146,7 @@ private fun AlarmScreen(kind: AlertKind, test: Boolean, snapshot: SolarSnapshot,
     val ui = buildHomeUi(snapshot, running = true)
     val restored = !test && kind == AlertKind.OUTAGE && ui.heroRole == StateRole.UP
     val ringing by AlarmPlayer.ringing.collectAsState()
+    val ringMs by AlarmPlayer.durationMs.collectAsState()
     val still = Solar.reduceMotion
 
     // The mains came back while this was on screen: say so, then get out of the way.
@@ -245,7 +247,11 @@ private fun AlarmScreen(kind: AlertKind, test: Boolean, snapshot: SolarSnapshot,
 
             SlideToStop(if (ringing) "Slide to stop the alarm" else "Slide to close", onStop)
             Text(
-                if (ringing) "Stops by itself after 90 seconds" else "Alarm stopped",
+                when {
+                    !ringing -> "Alarm stopped"
+                    ringMs <= 0 -> "Rings until you stop it or the mains return"
+                    else -> "Stops by itself after ${AlertSettings.describeRing((ringMs / 1000).toInt())}"
+                },
                 style = SolarType.caption,
                 color = OnAlarmSoft,
                 modifier = Modifier.padding(top = 12.dp)

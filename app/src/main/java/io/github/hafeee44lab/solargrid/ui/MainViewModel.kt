@@ -224,7 +224,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val demoOutageActive: Boolean get() = graph.demoOutageActive
 
     fun testAlarm() {
-        Notifier.testAlert(graph.app, graph.settings.load().alerts.ringInSilentMode)
+        graph.settings.load().alerts.let { Notifier.testAlert(graph.app, it.ringInSilentMode, it.ringSeconds) }
     }
 
     fun stopAlarm() {

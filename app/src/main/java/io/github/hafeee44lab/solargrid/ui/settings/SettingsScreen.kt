@@ -99,6 +99,14 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, system: SystemActions, onO
         ListGroup("Outage alarm") {
             ToggleRow("Ring and show over the lock screen", alerts.alarmOnOutage, { v -> alerts { copy(alarmOnOutage = v) } }, subtitle = "Off: a normal notification instead", icon = Icons.Bell)
             ToggleRow("Ring in silent mode", alerts.ringInSilentMode, { v -> alerts { copy(ringInSilentMode = v) } }, subtitle = "Uses the alarm volume, like an alarm clock", icon = Icons.Bell, enabled = alerts.alarmOnOutage)
+            val ringIndex = AlertSettings.RING_CHOICES.indexOf(alerts.ringSeconds).takeIf { it >= 0 } ?: 2
+            SliderRow(
+                "Ring for", ringIndex, 0..AlertSettings.RING_CHOICES.lastIndex, 1,
+                { AlertSettings.describeRing(AlertSettings.RING_CHOICES[it]) },
+                { v -> alerts { copy(ringSeconds = AlertSettings.RING_CHOICES[v]) } },
+                subtitle = "Then it goes quiet. It always stops when the mains return.",
+                enabled = alerts.alarmOnOutage
+            )
             ToggleRow("Tell me when the mains are back", alerts.notifyRestored, { v -> alerts { copy(notifyRestored = v) } }, subtitle = "With how long they were off", icon = Icons.Live)
             SettingRow("Test the alarm", subtitle = "Rings once so you know what it sounds like", icon = Icons.Bell, iconTint = c.down, onClick = vm::testAlarm)
         }

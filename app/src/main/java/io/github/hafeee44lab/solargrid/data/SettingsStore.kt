@@ -50,6 +50,7 @@ class SettingsStore(context: Context) {
             alerts = AlertSettings(
                 alarmOnOutage = p.getBoolean("alarm_on_outage", defaults.alarmOnOutage),
                 ringInSilentMode = p.getBoolean("ring_in_silent", defaults.ringInSilentMode),
+                ringSeconds = p.getInt("ring_seconds", defaults.ringSeconds),
                 notifyRestored = p.getBoolean("notify_restored", defaults.notifyRestored),
                 lowBatteryPercent = p.getInt("low_battery", defaults.lowBatteryPercent),
                 criticalBatteryPercent = p.getInt("critical_battery", defaults.criticalBatteryPercent),
@@ -88,6 +89,7 @@ class SettingsStore(context: Context) {
             .putString(THEME, settings.theme.name)
             .putBoolean("alarm_on_outage", a.alarmOnOutage)
             .putBoolean("ring_in_silent", a.ringInSilentMode)
+            .putInt("ring_seconds", a.ringSeconds)
             .putBoolean("notify_restored", a.notifyRestored)
             .putInt("low_battery", a.lowBatteryPercent)
             .putInt("critical_battery", a.criticalBatteryPercent)

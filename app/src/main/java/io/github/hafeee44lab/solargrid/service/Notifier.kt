@@ -306,8 +306,9 @@ object Notifier {
         context.getSystemService(NotificationManager::class.java)?.notify(STATUS_ID, notification)
     }
 
-    fun testAlert(context: Context, ringInSilentMode: Boolean) {
-        AlarmPlayer.start(context, ringInSilentMode)
+    fun testAlert(context: Context, ringInSilentMode: Boolean, ringSeconds: Int) {
+        // A test never rings forever, even when the real alarm is set to.
+        AlarmPlayer.start(context, ringInSilentMode, (if (ringSeconds > 0) ringSeconds else 90) * 1000L)
         post(
             context,
             Alert(AlertKind.OUTAGE, "Test alarm", "This is what a cut looks and sounds like.", ring = true),

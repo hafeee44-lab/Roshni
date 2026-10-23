@@ -179,7 +179,7 @@ class MonitorService : Service() {
         if (plan.outageBegan != null) Notifier.cancel(this, AlertKind.RESTORED, AlertKind.HEADS_UP)
 
         for (alert in plan.alerts) {
-            if (alert.ring) AlarmPlayer.start(this, settings.alerts.ringInSilentMode)
+            if (alert.ring) AlarmPlayer.start(this, settings.alerts.ringInSilentMode, settings.alerts.ringSeconds * 1000L)
             Notifier.post(this, alert)
         }
 

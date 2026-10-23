@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 object AlarmPlayer {
 
-    const val MAX_DURATION_MS = 90_000L
+    const val DEFAULT_DURATION_MS = 90_000L
     private const val FADE_STEPS = 16
     private const val FADE_STEP_MS = 500L
     private val PATTERN = longArrayOf(0L, 700L, 350L, 700L, 1300L)
@@ -32,15 +32,19 @@ object AlarmPlayer {
     private val _ringing = MutableStateFlow(false)
     val ringing: StateFlow<Boolean> = _ringing
 
-    fun start(context: Context, ringInSilentMode: Boolean) {
-        main.post { startOnMain(context.applicationContext, ringInSilentMode) }
+    /** How long the current alarm rings for; 0 means until stopped. Shown on the alarm screen. */
+    private val _durationMs = MutableStateFlow(DEFAULT_DURATION_MS)
+    val durationMs: StateFlow<Long> = _durationMs
+
+    fun start(context: Context, ringInSilentMode: Boolean, durationMs: Long = DEFAULT_DURATION_MS) {
+        main.post { startOnMain(context.applicationContext, ringInSilentMode, durationMs) }
     }
 
     fun stop() {
         main.post { stopOnMain() }
     }
 
-    private fun startOnMain(context: Context, ringInSilentMode: Boolean) {
+    private fun startOnMain(context: Context, ringInSilentMode: Boolean, durationMs: Long) {
         stopOnMain()
 
         try {
@@ -74,8 +78,9 @@ object AlarmPlayer {
             e.printStackTrace()
         }
 
+        _durationMs.value = durationMs
         _ringing.value = true
-        main.postDelayed(::stopOnMain, MAX_DURATION_MS)
+        if (durationMs > 0) main.postDelayed(::stopOnMain, durationMs)
     }
 
     /** A gentle ramp: loud enough to wake you, not a jump-scare at full volume. */
