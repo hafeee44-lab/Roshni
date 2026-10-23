@@ -81,7 +81,10 @@ data class UiState(
     val observedSince: Long? = null,
     val schedule: List<OutageSlot> = emptyList(),
     val prediction: Prediction? = null,
-    val now: Long = System.currentTimeMillis()
+    val now: Long = System.currentTimeMillis(),
+    val apiCallsToday: Int = 0,
+    val apiCallsYesterday: Int? = null,
+    val quotaExhausted: Boolean = false
 )
 
 private data class ProfileData(
@@ -91,7 +94,10 @@ private data class ProfileData(
     val events: List<Event>,
     val todaySamples: List<Sample>,
     val days: List<DayEnergy>,
-    val observedSince: Long?
+    val observedSince: Long?,
+    val apiCallsToday: Int,
+    val apiCallsYesterday: Int?,
+    val quotaExhausted: Boolean
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -136,7 +142,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     events = db.events(80),
                     todaySamples = db.samples(today, today + OutageLog.DAY_MS),
                     days = db.days(today - 29 * OutageLog.DAY_MS),
-                    observedSince = db.observedSince()
+                    observedSince = db.observedSince(),
+                    apiCallsToday = state.apiCallsToday(now),
+                    apiCallsYesterday = state.apiCallsYesterday(now),
+                    quotaExhausted = state.quotaHitAt > 0L
                 )
             }
             .flowOn(Dispatchers.IO)
@@ -163,7 +172,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     observedSince = data.observedSince,
                     schedule = OutagePredictor.schedule(data.outages, now, since),
                     prediction = OutagePredictor.next(data.outages, now, since),
-                    now = now
+                    now = now,
+                    apiCallsToday = data.apiCallsToday,
+                    apiCallsYesterday = data.apiCallsYesterday,
+                    quotaExhausted = data.quotaExhausted
                 )
             }
         }
@@ -178,7 +190,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             MonitorService.refresh(graph.app)
             return
         }
-        // Not monitoring: still allow a one-off check so the screen is never stuck.
+        // Not monitoring: still allow a one-off check so the screen is never stuck,
+        // but not a second call to Solarman within seconds of the last one.
+        if (System.currentTimeMillis() - graph.state(settings.profile).lastPollAt < 20_000L) return
         viewModelScope.launch(Dispatchers.IO) {
             localBusy.value = true
             try {

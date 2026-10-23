@@ -49,6 +49,7 @@ class MonitorEngine(private val graph: AppGraph) {
             FetchResult.Failed("Not signed in to Solarman", authProblem = true)
         } else {
             try {
+                state.lastPollAt = now
                 source.fetch()
             } catch (e: Exception) {
                 FetchResult.Failed("Network error: ${e.localizedMessage ?: e.javaClass.simpleName}")
@@ -67,15 +68,18 @@ class MonitorEngine(private val graph: AppGraph) {
                 learnCadence(state, collectedAt)
                 runtime = updateRuntimeModel(state, reading, settings.alerts)
                 state.errorStreak = 0
+                state.quotaHitAt = 0L
                 state.dump = reading.dump
                 Observation.Upload(reading, collectedAt, result.inverterAlarm)
             }
             FetchResult.LoggerOffline -> {
                 state.errorStreak = 0
+                state.quotaHitAt = 0L
                 Observation.LoggerOffline
             }
             is FetchResult.Failed -> {
                 state.errorStreak = state.errorStreak + 1
+                if (result.quotaExhausted) state.quotaHitAt = now
                 Observation.Unreachable
             }
         }

@@ -11,8 +11,9 @@ class PollPolicyTest {
         sinceChange: Long = Long.MAX_VALUE,
         errors: Int = 0,
         learned: Long? = null,
-        sinceUpload: Long = -1L
-    ) = PollPolicy.nextDelayMs(gridDown, sinceChange, errors, learned, sinceUpload)
+        sinceUpload: Long = -1L,
+        quota: Boolean = false
+    ) = PollPolicy.nextDelayMs(gridDown, sinceChange, errors, learned, sinceUpload, quota)
 
     @Test
     fun steadyStateBacksOffToTheInverterCadence() {
@@ -88,5 +89,37 @@ class PollPolicyTest {
     fun implausibleGapsAreIgnored() {
         assertEquals(300_000L, PollPolicy.learnUploadInterval(300_000L, 3_000L))
         assertEquals(300_000L, PollPolicy.learnUploadInterval(300_000L, 5 * 60 * 60_000L))
+    }
+
+    @Test
+    fun outagePollsJustAfterTheNextUploadInsteadOfEvery90Seconds() {
+        assertEquals(215_000L, next(gridDown = true, learned = 300_000L, sinceUpload = 100_000L))
+    }
+
+    @Test
+    fun outageRetriesQuicklyWhenAnUploadIsLate() {
+        assertEquals(PollPolicy.ACTIVE_MS, next(gridDown = true, learned = 300_000L, sinceUpload = 320_000L))
+    }
+
+    @Test
+    fun outageWithASilentLoggerWaitsAFullCadence() {
+        assertEquals(300_000L, next(gridDown = true, learned = 300_000L, sinceUpload = 20 * 60_000L))
+    }
+
+    @Test
+    fun outageNeverPollsFasterThanItsFloor() {
+        assertEquals(PollPolicy.ACTIVE_MIN_MS, next(gridDown = true, learned = 300_000L, sinceUpload = 299_000L))
+    }
+
+    @Test
+    fun anExhaustedAllowancePausesChecksForAnHour() {
+        assertEquals(PollPolicy.QUOTA_BACKOFF_MS, next(gridDown = true, quota = true))
+    }
+
+    @Test
+    fun aNormalDayStaysWellUnderSolarmansLimits() {
+        // Logger uploads every 5 minutes, mains on all day: about one call per upload.
+        val perDay = (24 * 60 * 60_000L) / next(learned = 300_000L, sinceUpload = 0L)
+        assertTrue("expected ≤ 300 calls a day, got $perDay", perDay <= 300)
     }
 }

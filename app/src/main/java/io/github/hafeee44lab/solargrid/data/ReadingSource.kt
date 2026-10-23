@@ -19,7 +19,11 @@ sealed interface FetchResult {
 
     data object LoggerOffline : FetchResult
 
-    data class Failed(val message: String, val authProblem: Boolean = false) : FetchResult
+    data class Failed(
+        val message: String,
+        val authProblem: Boolean = false,
+        val quotaExhausted: Boolean = false
+    ) : FetchResult
 }
 
 interface ReadingSource {
@@ -41,6 +45,7 @@ class SolarmanSource(
             is TokenResult.Failed -> return FetchResult.Failed(t.message, authProblem = true)
         }
 
+        state.countApiCall()
         var response = api.currentData(account.appId, "Bearer $token", DeviceDataRequest(account.deviceSn))
 
         if (response.code() == 401 || response.code() == 403) {
@@ -48,13 +53,16 @@ class SolarmanSource(
                 is TokenResult.Ok -> t.token
                 is TokenResult.Failed -> return FetchResult.Failed(t.message, authProblem = true)
             }
+            state.countApiCall()
             response = api.currentData(account.appId, "Bearer $token", DeviceDataRequest(account.deviceSn))
         }
 
+        if (response.code() == 429) return FetchResult.Failed("Solarman asked us to slow down")
         if (!response.isSuccessful) return FetchResult.Failed("Solarman returned HTTP ${response.code()}")
 
         val body = response.body() ?: return FetchResult.Failed("Solarman sent an empty reply")
 
+        if (body.code == QUOTA_CODE) return quotaFailure()
         if (body.success == false) {
             return FetchResult.Failed("Solarman rejected the request: ${body.msg ?: body.code ?: "no reason given"}")
         }
@@ -82,6 +90,7 @@ class SolarmanSource(
             return TokenResult.Ok(cached.first)
         }
 
+        state.countApiCall()
         return when (val result = login(api, account)) {
             is LoginResult.Ok -> {
                 state.token = result.token to (System.currentTimeMillis() + result.lifetimeMs)
@@ -96,6 +105,14 @@ class SolarmanSource(
 
     companion object {
         private const val TOKEN_MARGIN_MS = 5 * 60_000L
+
+        /** Solarman's "appId insufficient allowance": the App ID's call quota is used up. */
+        const val QUOTA_CODE = "2101010"
+
+        fun quotaFailure() = FetchResult.Failed(
+            "Solarman's call allowance for your App ID is used up. Checks pause and retry hourly; Solarman support can raise the limit.",
+            quotaExhausted = true
+        )
 
         sealed interface LoginResult {
             data class Ok(val token: String, val lifetimeMs: Long) : LoginResult

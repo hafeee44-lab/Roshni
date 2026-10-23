@@ -38,6 +38,11 @@ class MonitorService : Service() {
         const val ACTION_POLL = "io.github.hafeee44lab.solargrid.POLL"
         const val ACTION_REFRESH = "io.github.hafeee44lab.solargrid.REFRESH"
         const val ACTION_STOP_ALARM = "io.github.hafeee44lab.solargrid.SERVICE_STOP_ALARM"
+        const val ACTION_WATCHDOG = "io.github.hafeee44lab.solargrid.WATCHDOG"
+
+        /** A manual refresh within this long of the last call shows what we have instead of asking again. */
+        private const val REFRESH_MIN_GAP_MS = 20_000L
+        private const val WATCHDOG_GRACE_MS = 2 * 60_000L
 
         private const val REQUEST_POLL = 7
         private const val REQUEST_WATCHDOG = 8
@@ -72,7 +77,8 @@ class MonitorService : Service() {
         }
 
         private fun pending(context: Context, request: Int): PendingIntent {
-            val intent = Intent(context, MonitorService::class.java).setAction(ACTION_POLL)
+            val action = if (request == REQUEST_WATCHDOG) ACTION_WATCHDOG else ACTION_POLL
+            val intent = Intent(context, MonitorService::class.java).setAction(action)
             val flags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 PendingIntent.getForegroundService(context, request, intent, flags)
@@ -126,7 +132,19 @@ class MonitorService : Service() {
             return START_NOT_STICKY
         }
 
-        if (intent?.action != ACTION_STOP_ALARM) runPoll()
+        // Every call counts against the Solarman allowance, so wake-ups that can't learn anything
+        // new (a healthy chain, a second tap on refresh) don't ask again.
+        val sinceLastPoll = System.currentTimeMillis() - graph.state().lastPollAt
+        when (intent?.action) {
+            ACTION_STOP_ALARM -> Unit
+            ACTION_WATCHDOG -> {
+                val expected = computeDelay()
+                if (sinceLastPoll > expected + WATCHDOG_GRACE_MS) runPoll()
+                else scheduleNext((expected - sinceLastPoll).coerceAtLeast(5_000L))
+            }
+            ACTION_REFRESH -> if (sinceLastPoll in 0 until REFRESH_MIN_GAP_MS) Widgets.refresh(this) else runPoll()
+            else -> runPoll()
+        }
         return START_STICKY
     }
 
@@ -213,7 +231,8 @@ class MonitorService : Service() {
             msSinceStateChange = if (monitor.stateChangedAt > 0L) System.currentTimeMillis() - monitor.stateChangedAt else Long.MAX_VALUE,
             errorStreak = state.errorStreak,
             learnedUploadMs = state.uploadIntervalMs,
-            msSinceInverterUpload = state.snapshot.inverterAgeMillis()
+            msSinceInverterUpload = state.snapshot.inverterAgeMillis(),
+            quotaExhausted = state.quotaHitAt > 0L
         )
     }
 

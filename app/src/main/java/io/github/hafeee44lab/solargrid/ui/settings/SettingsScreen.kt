@@ -160,6 +160,18 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, system: SystemActions, onO
                     }
                 }
             }
+            if (!settings.demoMode && state.account != null) {
+                SettingRow(
+                    "Solarman calls: ${state.apiCallsToday} today" + (state.apiCallsYesterday?.let { " · $it yesterday" } ?: ""),
+                    subtitle = if (state.quotaExhausted) {
+                        "Solarman says your App ID's allowance is used up. Checks retry hourly; ask Solarman support to raise it."
+                    } else {
+                        "About one per inverter upload, a few more during a cut. Solarman limits calls per App ID."
+                    },
+                    icon = Icons.Wave,
+                    iconTint = if (state.quotaExhausted) c.down else c.ink3
+                )
+            }
             ToggleRow("Demo mode", settings.demoMode, vm::setDemo, subtitle = "A simulated home to explore. Your real history is kept separately.", icon = Icons.Flask)
         }
 

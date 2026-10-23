@@ -3,6 +3,7 @@ package io.github.hafeee44lab.solargrid.data
 import android.content.Context
 import android.content.SharedPreferences
 import io.github.hafeee44lab.solargrid.domain.MonitorState
+import io.github.hafeee44lab.solargrid.domain.OutageLog
 import io.github.hafeee44lab.solargrid.domain.OutageState
 import org.json.JSONObject
 
@@ -86,6 +87,51 @@ class StateStore(context: Context, profile: Profile) {
             }
         }
 
+    /** When the last poll actually asked Solarman, so extra wake-ups can skip a wasted call. */
+    var lastPollAt: Long
+        get() = prefs.getLong(LAST_POLL, 0L)
+        set(value) {
+            prefs.edit().putLong(LAST_POLL, value).apply()
+        }
+
+    /** Set when Solarman says the App ID's allowance is used up; cleared by the next success. */
+    var quotaHitAt: Long
+        get() = prefs.getLong(QUOTA_HIT, 0L)
+        set(value) {
+            prefs.edit().putLong(QUOTA_HIT, value).apply()
+        }
+
+    /** Calls made to Solarman today, for Settings. Resets at midnight. */
+    fun apiCallsToday(now: Long = System.currentTimeMillis()): Int =
+        if (prefs.getLong(API_DAY, 0L) == dayKey(now)) prefs.getInt(API_COUNT, 0) else 0
+
+    /** Calls made yesterday, a fairer picture of a full day than a count still running. */
+    fun apiCallsYesterday(now: Long = System.currentTimeMillis()): Int? {
+        val today = dayKey(now)
+        return when (prefs.getLong(API_DAY, 0L)) {
+            today -> prefs.getInt(API_PREVIOUS, -1).takeIf { it >= 0 && prefs.getLong(API_PREVIOUS_DAY, 0L) == today - 1 }
+            today - 1 -> prefs.getInt(API_COUNT, 0)
+            else -> null
+        }
+    }
+
+    @Synchronized
+    fun countApiCall(now: Long = System.currentTimeMillis()) {
+        val today = dayKey(now)
+        val day = prefs.getLong(API_DAY, 0L)
+        val edit = prefs.edit()
+        if (day != today) {
+            edit.putLong(API_PREVIOUS_DAY, day).putInt(API_PREVIOUS, prefs.getInt(API_COUNT, 0))
+            edit.putLong(API_DAY, today).putInt(API_COUNT, 1)
+        } else {
+            edit.putInt(API_COUNT, prefs.getInt(API_COUNT, 0) + 1)
+        }
+        edit.apply()
+    }
+
+    /** Days since the epoch in local time; the half-day nudge absorbs DST shifts. */
+    private fun dayKey(now: Long): Long = (OutageLog.startOfDay(now) + OutageLog.DAY_MS / 2) / OutageLog.DAY_MS
+
     fun clear() {
         prefs.edit().clear().apply()
     }
@@ -138,6 +184,12 @@ class StateStore(context: Context, profile: Profile) {
 
     private companion object {
         const val MONITOR = "monitor_state"
+        const val LAST_POLL = "last_poll_at"
+        const val QUOTA_HIT = "quota_hit_at"
+        const val API_DAY = "api_day"
+        const val API_COUNT = "api_count"
+        const val API_PREVIOUS = "api_previous_count"
+        const val API_PREVIOUS_DAY = "api_previous_day"
         const val DUMP = "raw_dump"
         const val ERROR_STREAK = "error_streak"
         const val UPLOAD_INTERVAL = "upload_interval_ms"
