@@ -29,6 +29,8 @@ import io.github.hafeee44lab.solargrid.domain.OutagePredictor
 import io.github.hafeee44lab.solargrid.domain.OutageRecord
 import io.github.hafeee44lab.solargrid.domain.OutageSlot
 import io.github.hafeee44lab.solargrid.domain.Prediction
+import io.github.hafeee44lab.solargrid.domain.RuntimeEstimator
+import io.github.hafeee44lab.solargrid.domain.Stretch
 import io.github.hafeee44lab.solargrid.domain.buildHomeUi
 import io.github.hafeee44lab.solargrid.service.AlarmPlayer
 import io.github.hafeee44lab.solargrid.service.MonitorEngine
@@ -84,7 +86,9 @@ data class UiState(
     val now: Long = System.currentTimeMillis(),
     val apiCallsToday: Int = 0,
     val apiCallsYesterday: Int? = null,
-    val quotaExhausted: Boolean = false
+    val quotaExhausted: Boolean = false,
+    /** Runtime at the household's usual low load, when cutting back would buy real time. */
+    val stretch: Stretch? = null
 )
 
 private data class ProfileData(
@@ -97,7 +101,8 @@ private data class ProfileData(
     val observedSince: Long?,
     val apiCallsToday: Int,
     val apiCallsYesterday: Int?,
-    val quotaExhausted: Boolean
+    val quotaExhausted: Boolean,
+    val typicalLowLoadW: Double?
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -145,7 +150,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     observedSince = db.observedSince(),
                     apiCallsToday = state.apiCallsToday(now),
                     apiCallsYesterday = state.apiCallsYesterday(now),
-                    quotaExhausted = state.quotaHitAt > 0L
+                    quotaExhausted = state.quotaHitAt > 0L,
+                    typicalLowLoadW = RuntimeEstimator.typicalLowLoad(db.samples(now - 7 * OutageLog.DAY_MS).map { it.loadW })
                 )
             }
             .flowOn(Dispatchers.IO)
@@ -175,7 +181,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     now = now,
                     apiCallsToday = data.apiCallsToday,
                     apiCallsYesterday = data.apiCallsYesterday,
-                    quotaExhausted = data.quotaExhausted
+                    quotaExhausted = data.quotaExhausted,
+                    stretch = RuntimeEstimator.stretch(
+                        soc = data.snapshot.soc,
+                        capacityWh = data.snapshot.capacityWh,
+                        currentLoadW = data.snapshot.runtimeLoadW ?: data.snapshot.loadPowerW,
+                        lowLoadW = data.typicalLowLoadW,
+                        reservePercent = settings.alerts.batteryReservePercent.toDouble()
+                    )
                 )
             }
         }

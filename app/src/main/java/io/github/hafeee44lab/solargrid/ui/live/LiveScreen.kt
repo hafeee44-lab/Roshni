@@ -302,6 +302,18 @@ private fun StatusCard(ui: HomeUi, state: UiState) {
             style = SolarType.caption,
             color = if (down) c.onDownContainer else c.ink3
         )
+        // During a cut: what switching off the heavy things would buy, from the house's own history.
+        val stretch = state.stretch
+        if (down && ui.batteryMode == BatteryMode.DISCHARGING && stretch != null) {
+            Spacer(Modifier.height(12.dp))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(c.onDownContainer.copy(alpha = 0.15f)))
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Cut back to ${"%.1f kW".format(stretch.loadWatts / 1000).nb()}, your usual low use, and it lasts until about ${clock.format(Date(state.now + stretch.minutes * 60_000L))} (${RuntimeEstimator.describe(stretch.minutes).nb()}).",
+                style = SolarType.body,
+                color = c.onDownContainer
+            )
+        }
     }
 }
 

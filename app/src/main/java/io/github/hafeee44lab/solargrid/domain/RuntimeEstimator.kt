@@ -1,5 +1,8 @@
 package io.github.hafeee44lab.solargrid.domain
 
+/** How long the battery would last if the house cut back to its usual low load. */
+data class Stretch(val loadWatts: Double, val minutes: Int)
+
 data class RuntimeEstimate(
     val minutesRemaining: Int,
     val usableWh: Double,
@@ -25,6 +28,39 @@ object RuntimeEstimator {
 
     private const val MIN_PLAUSIBLE_WH = 500.0
     private const val MAX_PLAUSIBLE_WH = 100_000.0
+
+    /** Readings needed before "your usual low load" means anything: about a day at 5-minute uploads. */
+    const val MIN_BASELINE_SAMPLES = 200
+    private const val LOW_LOAD_PERCENTILE = 0.2
+
+    /**
+     * The household's usual low load: the 20th percentile of recent readings. It is what the
+     * house really draws when the heavy appliances are off, taken from its own history rather
+     * than a guess.
+     */
+    fun typicalLowLoad(loads: List<Double?>): Double? {
+        val valid = loads.filterNotNull().filter { it.isFinite() && it >= MIN_LOAD_W }.sorted()
+        if (valid.size < MIN_BASELINE_SAMPLES) return null
+        return valid[(valid.size * LOW_LOAD_PERCENTILE).toInt()]
+    }
+
+    /**
+     * The runtime at the usual low load, but only when cutting back would buy real time:
+     * the low load is clearly below today's draw and adds at least half an hour.
+     */
+    fun stretch(
+        soc: Double?,
+        capacityWh: Double?,
+        currentLoadW: Double?,
+        lowLoadW: Double?,
+        reservePercent: Double = RESERVE_PERCENT
+    ): Stretch? {
+        if (currentLoadW == null || lowLoadW == null || lowLoadW > currentLoadW * 0.75) return null
+        val now = estimate(soc, capacityWh, currentLoadW, false, reservePercent) ?: return null
+        val low = estimate(soc, capacityWh, lowLoadW, false, reservePercent) ?: return null
+        if (low.minutesRemaining - now.minutesRemaining < 30) return null
+        return Stretch(lowLoadW, low.minutesRemaining)
+    }
 
     fun nameplateWh(capacityAh: Double?, voltage: Double?): Double? {
         if (capacityAh == null || voltage == null) return null

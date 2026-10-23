@@ -128,4 +128,28 @@ class RuntimeEstimatorTest {
         assertEquals("3h", RuntimeEstimator.describe(180))
         assertEquals("empty", RuntimeEstimator.describe(0))
     }
+
+    @Test
+    fun usualLowLoadIsTheQuietEndOfTheWeek() {
+        // 200 readings of a house idling at 400 W, plus 100 with the AC on at 2 kW.
+        val loads = List(200) { 400.0 + it % 5 } + List(100) { 2000.0 }
+        assertEquals(400.0, RuntimeEstimator.typicalLowLoad(loads)!!, 5.0)
+    }
+
+    @Test
+    fun usualLowLoadNeedsAboutADayOfHistory() {
+        assertNull(RuntimeEstimator.typicalLowLoad(List(50) { 400.0 }))
+    }
+
+    @Test
+    fun stretchShowsHowLongTheBatteryLastsAtTheLowLoad() {
+        val s = RuntimeEstimator.stretch(soc = 80.0, capacityWh = nameplate, currentLoadW = 1600.0, lowLoadW = 400.0, reservePercent = 20.0)!!
+        // 60% of 5.78 kWh at 400 W is about 8h 40m.
+        assertEquals(520.0, s.minutes.toDouble(), 5.0)
+    }
+
+    @Test
+    fun noStretchWhenTheHouseIsAlreadyQuiet() {
+        assertNull(RuntimeEstimator.stretch(80.0, nameplate, currentLoadW = 450.0, lowLoadW = 400.0, reservePercent = 20.0))
+    }
 }

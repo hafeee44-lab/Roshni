@@ -20,6 +20,8 @@ data class SolarSnapshot(
     val loadPowerW: Double? = null,
     val soc: Double? = null,
     val runtimeMinutes: Int? = null,
+    /** The smoothed load the runtime was worked out at. */
+    val runtimeLoadW: Double? = null,
     val runtimeCalibrated: Boolean = false,
     val minutesToFull: Int? = null,
     val capacityWh: Double? = null,
@@ -69,6 +71,7 @@ data class SolarSnapshot(
         .put("loadPowerW", loadPowerW ?: JSONObject.NULL)
         .put("soc", soc ?: JSONObject.NULL)
         .put("runtimeMinutes", runtimeMinutes ?: JSONObject.NULL)
+        .put("runtimeLoadW", runtimeLoadW ?: JSONObject.NULL)
         .put("runtimeCalibrated", runtimeCalibrated)
         .put("minutesToFull", minutesToFull ?: JSONObject.NULL)
         .put("capacityWh", capacityWh ?: JSONObject.NULL)
@@ -126,6 +129,7 @@ data class SolarSnapshot(
                     loadPowerW = json.optDoubleOrNull("loadPowerW"),
                     soc = json.optDoubleOrNull("soc"),
                     runtimeMinutes = if (json.isNull("runtimeMinutes")) null else json.optInt("runtimeMinutes"),
+                    runtimeLoadW = if (json.isNull("runtimeLoadW")) null else json.optDouble("runtimeLoadW").takeIf { it.isFinite() },
                     runtimeCalibrated = json.optBoolean("runtimeCalibrated", false),
                     minutesToFull = if (json.isNull("minutesToFull")) null else json.optInt("minutesToFull"),
                     capacityWh = json.optDoubleOrNull("capacityWh"),

@@ -170,6 +170,7 @@ class MonitorEngine(private val graph: AppGraph) {
             loadPowerW = reading.loadPowerW,
             soc = reading.soc,
             runtimeMinutes = runtime?.minutesRemaining,
+            runtimeLoadW = runtime?.loadWatts,
             runtimeCalibrated = runtime?.calibrated == true,
             minutesToFull = RuntimeEstimator.minutesToFull(reading.soc, capacity, charge),
             capacityWh = capacity,
