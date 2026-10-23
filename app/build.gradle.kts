@@ -37,7 +37,7 @@ android {
         buildConfigField("String", "SEED_EMAIL", "\"${local("solarman.email")}\"")
         buildConfigField("String", "SEED_PASSWORD_SHA256", "\"${local("solarman.passwordSha256")}\"")
         buildConfigField("String", "SEED_DEVICE_SN", "\"${local("solarman.deviceSn")}\"")
-        buildConfigField("String", "SOURCE_URL", "\"https://github.com/hafeee44-lab/SolarGridMonitor\"")
+        buildConfigField("String", "SOURCE_URL", "\"https://github.com/hafeee44-lab/Roshni\"")
     }
 
     buildTypes {
