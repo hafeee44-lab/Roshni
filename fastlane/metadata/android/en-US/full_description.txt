@@ -1,0 +1,29 @@
+<p>Roshni watches your hybrid solar inverter through the Solarman cloud and tells you the moment the mains go off: a full-screen alarm over the lock screen, with how long your battery will last.</p>
+
+<p><b>Alerts that reach you</b></p>
+<ul>
+<li>Full-screen outage alarm with slide to stop; choose how long it rings</li>
+<li>Optional ring in silent mode, quiet hours, and a "mains back on" notice</li>
+<li>Low and critical battery, heavy load, inverter faults and overheating</li>
+<li>Optional WhatsApp relay so the whole household hears</li>
+</ul>
+
+<p><b>Numbers you can trust</b></p>
+<ul>
+<li>Careful detection: grid relay, frequency, voltage and power balance, confirmed before anything rings</li>
+<li>Battery runtime that learns your real capacity, and how long it lasts if you cut back to your usual low use</li>
+<li>Never shows stale data as current</li>
+</ul>
+
+<p><b>Your own history</b></p>
+<ul>
+<li>Imports the last two weeks from Solarman on first use</li>
+<li>Learns your load-shedding schedule and warns before the next cut</li>
+<li>Outage map, day charts, uptime and CSV export</li>
+</ul>
+
+<p>Home-screen widget, Quick Settings tile, light and dark themes, and a demo mode to try everything without an inverter.</p>
+
+<p>Needs Solarman OpenAPI credentials (App ID and secret), which Solarman issues free to plant owners. No analytics, no accounts of our own: the only network traffic is to Solarman and, if you set one up, your own WhatsApp bridge.</p>
+
+<p>Not affiliated with Solarman or any inverter maker.</p>

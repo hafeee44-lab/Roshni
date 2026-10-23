@@ -70,7 +70,9 @@ Your **email and password** are the ones you already use in the Solarman app. Th
 
 ### 2. Install
 
-Build it yourself (see below). Release builds will follow.
+Download the latest `Roshni-v….apk` from [Releases](https://github.com/hafeee44-lab/Roshni/releases) and open it on your phone (Android 8 or newer). Android will ask you to allow installs from your browser or file manager the first time. Each release also lists the APK's SHA-256 so you can check the download.
+
+Or build it yourself (see below).
 
 ### 3. Set up
 

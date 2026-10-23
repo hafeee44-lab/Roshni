@@ -17,6 +17,12 @@ val localProps = Properties().apply {
 
 fun local(key: String): String = (localProps.getProperty(key) ?: "").replace("\"", "")
 
+/** Release signing comes from the environment (CI) or local.properties (your machine); never from git. */
+fun signing(env: String, prop: String): String? =
+    System.getenv(env)?.takeIf { it.isNotBlank() } ?: localProps.getProperty(prop)?.takeIf { it.isNotBlank() }
+
+val releaseKeystore = signing("ROSHNI_KEYSTORE", "roshni.keystore")
+
 android {
     namespace = "io.github.hafeee44lab.solargrid"
     compileSdk {
@@ -27,21 +33,40 @@ android {
         applicationId = "io.github.hafeee44lab.solargrid"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "2.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "SEED_APP_ID", "\"${local("solarman.appId")}\"")
-        buildConfigField("String", "SEED_APP_SECRET", "\"${local("solarman.appSecret")}\"")
-        buildConfigField("String", "SEED_EMAIL", "\"${local("solarman.email")}\"")
-        buildConfigField("String", "SEED_PASSWORD_SHA256", "\"${local("solarman.passwordSha256")}\"")
-        buildConfigField("String", "SEED_DEVICE_SN", "\"${local("solarman.deviceSn")}\"")
         buildConfigField("String", "SOURCE_URL", "\"https://github.com/hafeee44-lab/Roshni\"")
     }
 
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = signing("ROSHNI_KEYSTORE_PASSWORD", "roshni.keystorePassword")
+                keyAlias = signing("ROSHNI_KEY_ALIAS", "roshni.keyAlias")
+                keyPassword = signing("ROSHNI_KEY_PASSWORD", "roshni.keyPassword")
+            }
+        }
+    }
+
     buildTypes {
+        // Personal credentials only ever go into your own debug builds. A release APK is
+        // shared with other people, so it always starts at onboarding.
+        debug {
+            buildConfigField("String", "SEED_APP_ID", "\"${local("solarman.appId")}\"")
+            buildConfigField("String", "SEED_APP_SECRET", "\"${local("solarman.appSecret")}\"")
+            buildConfigField("String", "SEED_EMAIL", "\"${local("solarman.email")}\"")
+            buildConfigField("String", "SEED_PASSWORD_SHA256", "\"${local("solarman.passwordSha256")}\"")
+            buildConfigField("String", "SEED_DEVICE_SN", "\"${local("solarman.deviceSn")}\"")
+        }
         release {
+            listOf("SEED_APP_ID", "SEED_APP_SECRET", "SEED_EMAIL", "SEED_PASSWORD_SHA256", "SEED_DEVICE_SN").forEach {
+                buildConfigField("String", it, "\"\"")
+            }
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             optimization {
                 enable = false
             }

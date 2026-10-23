@@ -1,0 +1,5 @@
+• Imports the last two weeks of history from Solarman on first use
+• During a cut, shows how long the battery lasts if you cut back to your usual low use
+• Choose how long the alarm rings, up to "until I stop it"
+• Far fewer Solarman API calls during cuts; a used-up allowance is explained, not retried blindly
+• New app icon
