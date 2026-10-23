@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
 import io.github.hafeee44lab.solargrid.data.AppGraph
+import io.github.hafeee44lab.solargrid.data.HistoryImport
 import io.github.hafeee44lab.solargrid.domain.AlertKind
 import io.github.hafeee44lab.solargrid.domain.PollPolicy
 import io.github.hafeee44lab.solargrid.widget.Widgets
@@ -43,6 +44,7 @@ class MonitorService : Service() {
         /** A manual refresh within this long of the last call shows what we have instead of asking again. */
         private const val REFRESH_MIN_GAP_MS = 20_000L
         private const val WATCHDOG_GRACE_MS = 2 * 60_000L
+        private const val IMPORT_WAKE_MS = 3 * 60_000L
 
         private const val REQUEST_POLL = 7
         private const val REQUEST_WATCHDOG = 8
@@ -175,6 +177,7 @@ class MonitorService : Service() {
                 val outcome = engine.pollOnce()
                 deliver(outcome)
                 scheduleNext(computeDelay())
+                if (!demo && !outcome.failed) importHistoryIfDue()
             } catch (e: Exception) {
                 e.printStackTrace()
                 scheduleNext(computeDelay())
@@ -219,6 +222,22 @@ class MonitorService : Service() {
                 Relay.drain(settings.relay, relayPrefs)
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    /** First real poll on an account: pull the last fortnight from Solarman, once. */
+    private fun importHistoryIfDue() {
+        scope.launch {
+            val wake = getSystemService(PowerManager::class.java)
+                ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SolarGrid:import")
+                ?.apply { setReferenceCounted(false); acquire(IMPORT_WAKE_MS) }
+            try {
+                HistoryImport(graph).runIfDue()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                if (wake?.isHeld == true) wake.release()
             }
         }
     }

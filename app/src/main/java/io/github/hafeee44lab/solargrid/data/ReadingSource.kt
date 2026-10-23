@@ -2,6 +2,7 @@ package io.github.hafeee44lab.solargrid.data
 
 import io.github.hafeee44lab.solargrid.data.api.DeviceDataRequest
 import io.github.hafeee44lab.solargrid.data.api.DeviceState
+import io.github.hafeee44lab.solargrid.data.api.HistoricalRequest
 import io.github.hafeee44lab.solargrid.data.api.PageRequest
 import io.github.hafeee44lab.solargrid.data.api.SolarMetric
 import io.github.hafeee44lab.solargrid.data.api.SolarmanApi
@@ -28,6 +29,12 @@ sealed interface FetchResult {
 
 interface ReadingSource {
     suspend fun fetch(): FetchResult
+}
+
+sealed interface HistoryFetch {
+    /** (collection time in ms, metrics) for each upload that day. */
+    data class Ok(val frames: List<Pair<Long, List<SolarMetric>>>) : HistoryFetch
+    data class Failed(val message: String, val quotaExhausted: Boolean = false) : HistoryFetch
 }
 
 /** One inverter discovered on the account during onboarding. */
@@ -77,6 +84,28 @@ class SolarmanSource(
             collectedAt = (body.collectionTime ?: 0L) * 1000L,
             inverterAlarm = body.deviceState == DeviceState.ALARM
         )
+    }
+
+    /** Every reading the logger uploaded on [day] ("yyyy-MM-dd"). One API call. */
+    suspend fun history(day: String): HistoryFetch {
+        val token = when (val t = token(forceRefresh = false)) {
+            is TokenResult.Ok -> t.token
+            is TokenResult.Failed -> return HistoryFetch.Failed(t.message)
+        }
+        state.countApiCall()
+        val response = api.historical(account.appId, "Bearer $token", HistoricalRequest(account.deviceSn, day, day))
+        if (!response.isSuccessful) return HistoryFetch.Failed("Solarman returned HTTP ${response.code()}")
+        val body = response.body() ?: return HistoryFetch.Failed("Solarman sent an empty reply")
+        if (body.code == QUOTA_CODE) return HistoryFetch.Failed(quotaFailure().message, quotaExhausted = true)
+        if (body.success == false) return HistoryFetch.Failed("Solarman rejected the request: ${body.msg ?: body.code ?: "no reason given"}")
+
+        val frames = body.paramDataList.orEmpty().mapNotNull { frame ->
+            val raw = frame.collectTime?.trim()?.toLongOrNull() ?: return@mapNotNull null
+            val at = if (raw < 100_000_000_000L) raw * 1000L else raw
+            val metrics = frame.dataList?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            at to metrics
+        }
+        return HistoryFetch.Ok(frames)
     }
 
     private sealed interface TokenResult {

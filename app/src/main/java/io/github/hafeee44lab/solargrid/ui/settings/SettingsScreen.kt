@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -186,7 +187,7 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, system: SystemActions, onO
             )
         }
 
-        DataGroup(vm, system, onOpenDiagnostics)
+        DataGroup(vm, state, system, onOpenDiagnostics)
 
         ListGroup("About", footer = "Not affiliated with Solarman or any inverter maker. Readings come from the Solarman OpenAPI.") {
             SettingRow("Roshni ${BuildConfig.VERSION_NAME}", subtitle = "Free and open source, MIT licence", icon = Icons.Info)
@@ -305,8 +306,9 @@ fun SolarField(
 }
 
 @Composable
-private fun DataGroup(vm: MainViewModel, system: SystemActions, onOpenDiagnostics: () -> Unit) {
+private fun DataGroup(vm: MainViewModel, state: UiState, system: SystemActions, onOpenDiagnostics: () -> Unit) {
     val c = Solar.colors
+    val importing by vm.importProgress.collectAsState()
     val scope = rememberCoroutineScope()
     var confirmClear by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -318,6 +320,16 @@ private fun DataGroup(vm: MainViewModel, system: SystemActions, onOpenDiagnostic
                 if (intent == null) message = "Nothing to export yet" else system.share(intent)
             }
         })
+        if (!state.settings.demoMode && state.account != null) {
+            SettingRow(
+                "Import from Solarman",
+                subtitle = importing?.let { (done, total) -> "Fetching day ${done + 1} of $total…" }
+                    ?: state.importNote
+                    ?: "The last two weeks of readings and cuts, so History isn't empty",
+                icon = Icons.Calendar,
+                onClick = if (importing == null) ({ vm.importHistory { message = it } }) else null
+            )
+        }
         SettingRow("Inverter data", subtitle = "Every value from the last reading", icon = Icons.Code, onClick = onOpenDiagnostics) {
             Icon(Icons.Chevron, null, tint = c.ink3, modifier = Modifier.size(20.dp))
         }

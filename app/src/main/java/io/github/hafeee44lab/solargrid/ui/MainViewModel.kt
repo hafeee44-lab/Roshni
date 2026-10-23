@@ -14,6 +14,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.hafeee44lab.solargrid.data.Account
 import io.github.hafeee44lab.solargrid.data.AppGraph
+import io.github.hafeee44lab.solargrid.data.HistoryImport
 import io.github.hafeee44lab.solargrid.data.AppSettings
 import io.github.hafeee44lab.solargrid.data.DayEnergy
 import io.github.hafeee44lab.solargrid.data.DiscoveredDevice
@@ -88,7 +89,9 @@ data class UiState(
     val apiCallsYesterday: Int? = null,
     val quotaExhausted: Boolean = false,
     /** Runtime at the household's usual low load, when cutting back would buy real time. */
-    val stretch: Stretch? = null
+    val stretch: Stretch? = null,
+    /** "14 days imported, 9 cuts", or why the last import failed; null before any import. */
+    val importNote: String? = null
 )
 
 private data class ProfileData(
@@ -102,8 +105,17 @@ private data class ProfileData(
     val apiCallsToday: Int,
     val apiCallsYesterday: Int?,
     val quotaExhausted: Boolean,
-    val typicalLowLoadW: Double?
+    val typicalLowLoadW: Double?,
+    val importNote: String?
 )
+
+private fun importNote(prefs: android.content.SharedPreferences): String? {
+    val failed = prefs.getString(HistoryImport.FAILED_MESSAGE, null)
+    if (failed != null) return "Last try failed: $failed"
+    if (prefs.getLong(HistoryImport.DONE_AT, 0L) == 0L) return null
+    val days = prefs.getInt(HistoryImport.DONE_DAYS, 0)
+    return if (days == 0) "History already covered the last two weeks" else "$days days imported, with ${prefs.getInt(HistoryImport.DONE_CUTS, 0)} cuts"
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -151,6 +163,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     apiCallsToday = state.apiCallsToday(now),
                     apiCallsYesterday = state.apiCallsYesterday(now),
                     quotaExhausted = state.quotaHitAt > 0L,
+                    importNote = importNote(state.prefs),
                     typicalLowLoadW = RuntimeEstimator.typicalLowLoad(db.samples(now - 7 * OutageLog.DAY_MS).map { it.loadW })
                 )
             }
@@ -182,6 +195,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     apiCallsToday = data.apiCallsToday,
                     apiCallsYesterday = data.apiCallsYesterday,
                     quotaExhausted = data.quotaExhausted,
+                    importNote = data.importNote,
                     stretch = RuntimeEstimator.stretch(
                         soc = data.snapshot.soc,
                         capacityWh = data.snapshot.capacityWh,
@@ -282,6 +296,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun finishOnboarding(startMonitoring: Boolean) {
         graph.settings.update { it.copy(onboarded = true) }
         if (startMonitoring) setMonitoring(true) else refresh()
+    }
+
+    /** (days done, total) while history is being imported from Solarman. */
+    val importProgress: StateFlow<Pair<Int, Int>?> = HistoryImport.progress
+
+    fun importHistory(onDone: (String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val message = when (val outcome = HistoryImport(graph).runIfDue(force = true)) {
+                is HistoryImport.Outcome.Imported -> "Imported ${outcome.days} days with ${outcome.cuts} cuts"
+                is HistoryImport.Outcome.Failed -> outcome.message
+                HistoryImport.Outcome.NothingToDo -> "History already covers the last two weeks"
+                HistoryImport.Outcome.Skipped -> "Already importing, or no Solarman account connected"
+            }
+            withContext(Dispatchers.Main) { onDone(message) }
+        }
     }
 
     fun clearHistory() {

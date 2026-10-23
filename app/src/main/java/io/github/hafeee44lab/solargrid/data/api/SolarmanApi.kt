@@ -58,6 +58,27 @@ data class SolarMetric(
     val unit: String?
 )
 
+/** timeType 1 asks for every reading the logger uploaded on one day ("yyyy-MM-dd"). */
+data class HistoricalRequest(
+    @SerializedName("deviceSn") val deviceSn: String,
+    @SerializedName("startTime") val startTime: String,
+    @SerializedName("endTime") val endTime: String,
+    @SerializedName("timeType") val timeType: Int = 1
+)
+
+data class HistoricalResponse(
+    val success: Boolean?,
+    val code: String?,
+    val msg: String?,
+    val paramDataList: List<HistoricalFrame>?
+)
+
+/** One historical upload. collectTime is epoch seconds, sent as a string. */
+data class HistoricalFrame(
+    val collectTime: String?,
+    val dataList: List<SolarMetric>?
+)
+
 data class PageRequest(val page: Int = 1, val size: Int = 50)
 
 data class StationListResponse(
@@ -109,6 +130,14 @@ interface SolarmanApi {
         @Header("Authorization") bearer: String,
         @Body request: DeviceDataRequest
     ): Response<DeviceDataResponse>
+
+    @Headers("Content-Type: application/json")
+    @POST("device/v1.0/historical?language=en")
+    suspend fun historical(
+        @Query("appId") appId: String,
+        @Header("Authorization") bearer: String,
+        @Body request: HistoricalRequest
+    ): Response<HistoricalResponse>
 
     @Headers("Content-Type: application/json")
     @POST("station/v1.0/list?language=en")
