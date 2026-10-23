@@ -2,6 +2,8 @@ package io.github.hafeee44lab.solargrid.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -40,11 +42,15 @@ import androidx.glance.text.TextStyle
 import io.github.hafeee44lab.solargrid.MainActivity
 import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.AppGraph
+import io.github.hafeee44lab.solargrid.data.changes
 import io.github.hafeee44lab.solargrid.domain.HomeUi
 import io.github.hafeee44lab.solargrid.domain.StateRole
 import io.github.hafeee44lab.solargrid.domain.buildHomeUi
 import io.github.hafeee44lab.solargrid.domain.kw
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -57,74 +63,77 @@ class GridWidget : GlanceAppWidget() {
 
     override val sizeMode = SizeMode.Responsive(setOf(SMALL, TALL, WIDE, LARGE))
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val graph = AppGraph.get(context)
         val settings = graph.settings.load()
-        val ui = buildHomeUi(graph.state(settings.profile).snapshot, settings.monitoring)
+        val initial = buildHomeUi(graph.state(settings.profile).snapshot, settings.monitoring)
 
-        provideContent { Content(ui) }
+        // Glance keeps a session alive between updates, so the reading has to be observed, not
+        // read once: otherwise every refresh in that window redraws the first snapshot.
+        val readings = graph.settings.prefs.changes()
+            .map { graph.settings.load() }
+            .flatMapLatest { s ->
+                graph.state(s.profile).prefs.changes().map { buildHomeUi(graph.state(s.profile).snapshot, s.monitoring) }
+            }
+
+        provideContent {
+            val ui by readings.collectAsState(initial)
+            Content(ui)
+        }
     }
 
     @Composable
     private fun Content(ui: HomeUi) {
         val size = LocalSize.current
-        val accent = when (ui.heroRole) {
-            StateRole.UP -> ColorProvider(day = Color(0xFF08875D), night = Color(0xFF2BD99F))
-            StateRole.DOWN -> ColorProvider(day = Color(0xFFD9203F), night = Color(0xFFFF4D6A))
-            StateRole.NEUTRAL -> ColorProvider(day = Color(0xFF626A79), night = Color(0xFF8590A2))
+        val dot = when (ui.heroRole) {
+            StateRole.UP -> ColorProvider(day = Color(0xFF1B8A4E), night = Color(0xFF5CC98C))
+            StateRole.DOWN -> ColorProvider(day = Color(0xFFC62828), night = Color(0xFFF2726A))
+            StateRole.NEUTRAL -> ColorProvider(day = Color(0xFF6A7180), night = Color(0xFF959CA9))
         }
-        val ink = ColorProvider(day = Color(0xFF12161D), night = Color(0xFFEEF2F8))
-        val muted = ColorProvider(day = Color(0xFF626A79), night = Color(0xFF8C97A8))
-        val surface = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFF0F141D))
-        val track = ColorProvider(day = Color(0x14000000), night = Color(0x1FFFFFFF))
-        val battery = ColorProvider(day = Color(0xFF6A55F2), night = Color(0xFF9B8CFF))
-        val solar = ColorProvider(day = Color(0xFFA86400), night = Color(0xFFFFB23F))
+        val down = ui.heroRole == StateRole.DOWN
+        val ink = if (down) ColorProvider(day = Color(0xFF7A1212), night = Color(0xFFFFD9D6)) else ColorProvider(day = Color(0xFF16191F), night = Color(0xFFE7E9EE))
+        val muted = if (down) ColorProvider(day = Color(0xFF7A1212), night = Color(0xFFFFD9D6)) else ColorProvider(day = Color(0xFF6A7180), night = Color(0xFF959CA9))
+        val surface = if (down) ColorProvider(day = Color(0xFFFCEBEA), night = Color(0xFF3A1D1D)) else ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFF1B1F26))
+        val track = ColorProvider(day = Color(0xFFEDF0F4), night = Color(0xFF262B34))
+        val soc = ui.soc
+        val battery = when {
+            soc == null -> ColorProvider(day = Color(0xFF6A7180), night = Color(0xFF959CA9))
+            soc <= 20 -> ColorProvider(day = Color(0xFFC62828), night = Color(0xFFF2726A))
+            soc < 50 -> ColorProvider(day = Color(0xFFB7791F), night = Color(0xFFE6B45C))
+            else -> ColorProvider(day = Color(0xFF1B8A4E), night = Color(0xFF5CC98C))
+        }
 
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .appWidgetBackground()
-                .cornerRadius(24.dp)
+                .cornerRadius(20.dp)
                 .background(surface)
                 .padding(16.dp)
                 .clickable(actionStartActivity<MainActivity>())
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
                 Image(
-                    provider = ImageProvider(if (ui.heroRole == StateRole.DOWN) R.drawable.ic_stat_outage else R.drawable.ic_stat_bolt),
+                    provider = ImageProvider(if (down) R.drawable.ic_stat_home_off else R.drawable.ic_stat_home),
                     contentDescription = null,
                     modifier = GlanceModifier.size(16.dp),
-                    colorFilter = androidx.glance.ColorFilter.tint(accent)
+                    colorFilter = androidx.glance.ColorFilter.tint(dot)
                 )
                 Spacer(GlanceModifier.width(6.dp))
-                Text(
-                    text = ui.heroState,
-                    style = TextStyle(color = accent, fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                    maxLines = 1
-                )
+                Text(ui.heroState, style = TextStyle(color = ink, fontSize = 14.sp, fontWeight = FontWeight.Medium), maxLines = 1)
             }
 
             Spacer(GlanceModifier.height(8.dp))
 
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = ui.socText,
-                    style = TextStyle(color = ink, fontSize = if (size.height >= TALL.height) 38.sp else 32.sp, fontWeight = FontWeight.Bold)
-                )
-                Text(
-                    text = "%",
-                    style = TextStyle(color = muted, fontSize = 15.sp, fontWeight = FontWeight.Medium),
-                    modifier = GlanceModifier.padding(start = 2.dp, bottom = 5.dp)
-                )
+                Text(ui.socText, style = TextStyle(color = ink, fontSize = if (size.height >= TALL.height) 40.sp else 32.sp))
+                Text("%", style = TextStyle(color = muted, fontSize = 14.sp), modifier = GlanceModifier.padding(start = 2.dp, bottom = 6.dp))
                 if (size.width >= WIDE.width) {
                     Spacer(GlanceModifier.defaultWeight())
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = runtimeLine(ui),
-                            style = TextStyle(color = ink, fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                            maxLines = 1
-                        )
-                        Text(text = ui.freshPrimary, style = TextStyle(color = muted, fontSize = 11.sp), maxLines = 1)
+                        Text(runtimeLine(ui), style = TextStyle(color = ink, fontSize = 13.sp), maxLines = 1)
+                        Text(ui.freshPrimary, style = TextStyle(color = muted, fontSize = 11.sp), maxLines = 1)
                     }
                 }
             }
@@ -133,28 +142,22 @@ class GridWidget : GlanceAppWidget() {
             LinearProgressIndicator(
                 progress = ui.socFraction,
                 modifier = GlanceModifier.fillMaxWidth().height(6.dp).cornerRadius(3.dp),
-                color = if (ui.heroRole == StateRole.DOWN) accent else battery,
+                color = battery,
                 backgroundColor = track
             )
 
             if (size.width < WIDE.width) {
                 Spacer(GlanceModifier.height(6.dp))
-                Text(text = runtimeLine(ui), style = TextStyle(color = muted, fontSize = 11.sp), maxLines = 1)
+                Text(runtimeLine(ui), style = TextStyle(color = muted, fontSize = 11.sp), maxLines = 1)
             }
 
             if (size.height >= TALL.height) {
                 Spacer(GlanceModifier.height(12.dp))
                 Row(modifier = GlanceModifier.fillMaxWidth()) {
-                    Metric("SOLAR", if (ui.trusted) kw(ui.powers.solarW) else "—", solar, muted, GlanceModifier.defaultWeight())
-                    Metric("HOME", ui.loadLabel, ink, muted, GlanceModifier.defaultWeight())
+                    Metric("Solar", if (ui.trusted) kw(ui.powers.solarW) else "—", ink, muted, GlanceModifier.defaultWeight())
+                    Metric("Home", ui.loadLabel, ink, muted, GlanceModifier.defaultWeight())
                     if (size.width >= WIDE.width) {
-                        Metric(
-                            if (ui.heroRole == StateRole.DOWN) "SINCE" else "GRID",
-                            if (ui.heroRole == StateRole.DOWN) sinceLabel(ui) else ui.gridLabel,
-                            accent,
-                            muted,
-                            GlanceModifier.defaultWeight()
-                        )
+                        Metric(if (down) "Off since" else "Grid", if (down) sinceLabel(ui) else ui.gridLabel, ink, muted, GlanceModifier.defaultWeight())
                     }
                 }
             }
@@ -164,8 +167,8 @@ class GridWidget : GlanceAppWidget() {
     @Composable
     private fun Metric(label: String, value: String, tone: GlanceColor, muted: GlanceColor, modifier: GlanceModifier) {
         Column(modifier = modifier) {
-            Text(label, style = TextStyle(color = muted, fontSize = 10.sp, fontWeight = FontWeight.Medium))
-            Text(value, style = TextStyle(color = tone, fontSize = 14.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+            Text(label, style = TextStyle(color = muted, fontSize = 11.sp))
+            Text(value, style = TextStyle(color = tone, fontSize = 14.sp, fontWeight = FontWeight.Medium), maxLines = 1)
         }
     }
 

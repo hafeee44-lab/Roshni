@@ -18,3 +18,11 @@ local.properties
 /.claude/
 
 .kotlin/
+
+# Impeccable working files (keep PRODUCT.md and surface briefs)
+/.impeccable/review/
+/.impeccable/mocks/
+/.impeccable/questions/
+/.impeccable/rolls/
+/.impeccable/roll-output*.txt
+/.impeccable/brief-app.md

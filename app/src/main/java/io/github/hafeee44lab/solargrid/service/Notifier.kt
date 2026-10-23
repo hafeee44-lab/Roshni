@@ -45,9 +45,9 @@ object Notifier {
     private const val GROUP_ALERTS = "alerts"
     private const val GROUP_INFO = "info"
 
-    private const val COLOR_UP = 0xFF2BD99F.toInt()
-    private const val COLOR_DOWN = 0xFFFF4D6A.toInt()
-    private const val COLOR_SOLAR = 0xFFFFB23F.toInt()
+    private const val COLOR_UP = 0xFF1B8A4E.toInt()
+    private const val COLOR_DOWN = 0xFFC62828.toInt()
+    private const val COLOR_SOLAR = 0xFFF2A007.toInt()
 
     fun createChannels(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
@@ -68,7 +68,7 @@ object Notifier {
 
         manager.createNotificationChannels(
             listOf(
-                channel(CH_OUTAGE, "Grid outage alarm", NotificationManager.IMPORTANCE_HIGH, GROUP_ALERTS,
+                channel(CH_OUTAGE, "Outage alarm", NotificationManager.IMPORTANCE_HIGH, GROUP_ALERTS,
                     "Takes over the screen and rings when the mains fail") {
                     // The alarm loop plays its own sound; a channel sound on top would double it.
                     setSound(null, null)
@@ -78,7 +78,7 @@ object Notifier {
                     setBypassDnd(true)
                     lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 },
-                channel(CH_RESTORED, "Grid restored", NotificationManager.IMPORTANCE_HIGH, GROUP_ALERTS,
+                channel(CH_RESTORED, "Mains back on", NotificationManager.IMPORTANCE_HIGH, GROUP_ALERTS,
                     "When the mains come back"),
                 channel(CH_BATTERY, "Battery", NotificationManager.IMPORTANCE_HIGH, GROUP_ALERTS,
                     "Low and critical battery during an outage, heavy load, battery full") {
@@ -114,7 +114,7 @@ object Notifier {
         }
 
         val builder = NotificationCompat.Builder(context, CH_STATUS)
-            .setSmallIcon(if (down) R.drawable.ic_stat_outage else R.drawable.ic_stat_bolt)
+            .setSmallIcon(if (down) R.drawable.ic_stat_home_off else R.drawable.ic_stat_home)
             .setContentTitle(statusTitle(ui))
             .setContentText(statusText(ui))
             .setStyle(NotificationCompat.BigTextStyle().bigText(statusText(ui)))
@@ -143,7 +143,7 @@ object Notifier {
 
     fun starting(context: Context): Notification =
         NotificationCompat.Builder(context, CH_STATUS)
-            .setSmallIcon(R.drawable.ic_stat_bolt)
+            .setSmallIcon(R.drawable.ic_stat_home)
             .setContentTitle("Starting monitor")
             .setContentText("Connecting to your inverter")
             .setContentIntent(openApp(context))
@@ -172,7 +172,7 @@ object Notifier {
                 )
 
             Notification.Builder(context, CH_STATUS)
-                .setSmallIcon(R.drawable.ic_stat_outage)
+                .setSmallIcon(R.drawable.ic_stat_home_off)
                 .setContentTitle(statusTitle(ui))
                 .setContentText(statusText(ui))
                 .setStyle(style)
@@ -194,8 +194,8 @@ object Notifier {
     }
 
     private fun statusTitle(ui: HomeUi): String = when (ui.heroRole) {
-        StateRole.DOWN -> "Grid down · battery ${ui.socText}%"
-        StateRole.UP -> "Grid online · battery ${ui.socText}%"
+        StateRole.DOWN -> "Mains off · battery ${ui.socText}%"
+        StateRole.UP -> "Mains on · battery ${ui.socText}%"
         StateRole.NEUTRAL -> "${ui.heroState} · battery ${ui.socText}%"
     }
 
@@ -238,10 +238,10 @@ object Notifier {
         val effectiveChannel = if (alert.kind == AlertKind.OUTAGE && !ringing) CH_BATTERY else channel
 
         val icon = when (alert.kind) {
-            AlertKind.OUTAGE, AlertKind.INVERTER_SILENT -> R.drawable.ic_stat_outage
+            AlertKind.OUTAGE, AlertKind.INVERTER_SILENT -> R.drawable.ic_stat_home_off
             AlertKind.LOW_BATTERY, AlertKind.CRITICAL_BATTERY, AlertKind.OVERLOAD, AlertKind.BATTERY_FULL -> R.drawable.ic_stat_battery
             AlertKind.HEADS_UP, AlertKind.SUMMARY -> R.drawable.ic_stat_sun
-            else -> R.drawable.ic_stat_bolt
+            else -> R.drawable.ic_stat_home
         }
 
         val color = when (alert.kind) {
@@ -310,7 +310,7 @@ object Notifier {
         AlarmPlayer.start(context, ringInSilentMode)
         post(
             context,
-            Alert(AlertKind.OUTAGE, "Test alarm", "This is what a grid outage looks and sounds like.", ring = true),
+            Alert(AlertKind.OUTAGE, "Test alarm", "This is what a cut looks and sounds like.", ring = true),
             test = true
         )
     }

@@ -2,9 +2,8 @@ package io.github.hafeee44lab.solargrid.ui.onboarding
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -13,12 +12,12 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,14 +31,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -51,11 +53,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.Account
 import io.github.hafeee44lab.solargrid.data.DiscoveredDevice
 import io.github.hafeee44lab.solargrid.domain.FlowPowers
@@ -63,12 +70,11 @@ import io.github.hafeee44lab.solargrid.ui.LocalSystem
 import io.github.hafeee44lab.solargrid.ui.MainViewModel
 import io.github.hafeee44lab.solargrid.ui.SystemActions
 import io.github.hafeee44lab.solargrid.ui.UiState
-import io.github.hafeee44lab.solargrid.ui.components.Atmosphere
-import io.github.hafeee44lab.solargrid.ui.components.GhostButton
 import io.github.hafeee44lab.solargrid.ui.components.Icons
-import io.github.hafeee44lab.solargrid.ui.components.Panel
+import io.github.hafeee44lab.solargrid.ui.components.ListGroup
 import io.github.hafeee44lab.solargrid.ui.components.PrimaryButton
-import io.github.hafeee44lab.solargrid.ui.components.SectionLabel
+import io.github.hafeee44lab.solargrid.ui.components.SCard
+import io.github.hafeee44lab.solargrid.ui.components.SecondaryButton
 import io.github.hafeee44lab.solargrid.ui.components.SettingRow
 import io.github.hafeee44lab.solargrid.ui.live.PowerFlow
 import io.github.hafeee44lab.solargrid.ui.settings.SolarField
@@ -79,74 +85,80 @@ import kotlinx.coroutines.launch
 import kotlin.math.sin
 
 private const val OPENAPI_HELP = "https://helpcenter.solarmanpv.com/portal/en/kb/articles/open-api-faq-summary"
+private const val STEPS = 4
 
 @Composable
 fun OnboardingScreen(vm: MainViewModel, state: UiState, system: SystemActions) {
-    val colors = Solar.colors
+    val c = Solar.colors
     var step by rememberSaveable { mutableIntStateOf(0) }
+    val progress by animateFloatAsState((step + 1f) / STEPS, tween(400, easing = FastOutSlowInEasing), label = "steps")
 
-    Box(Modifier.fillMaxSize()) {
-        Atmosphere(tint = if (step == 0) colors.solar else colors.ok, intensity = 0.8f, pulse = false)
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(c.bg)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .imePadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp).widthIn(max = 560.dp).fillMaxWidth(),
+            trackColor = c.surfaceVariant,
+            drawStopIndicator = {}
+        )
 
-        Column(
-            Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .imePadding()
-        ) {
-            StepDots(step, total = 4, modifier = Modifier.padding(top = 18.dp).align(Alignment.CenterHorizontally))
-
-            AnimatedContent(
-                targetState = step,
-                transitionSpec = {
-                    val forward = targetState > initialState
-                    (slideInHorizontally(tween(420, easing = FastOutSlowInEasing)) { if (forward) it / 3 else -it / 3 } + fadeIn(tween(300))) togetherWith
-                        (slideOutHorizontally(tween(300)) { if (forward) -it / 3 else it / 3 } + fadeOut(tween(200)))
-                },
-                label = "step",
-                modifier = Modifier.weight(1f)
-            ) { current ->
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 22.dp, vertical = 16.dp)
-                ) {
-                    when (current) {
-                        0 -> Welcome(
-                            onConnect = { step = 1 },
-                            onDemo = {
-                                vm.setDemo(true)
-                                step = 2
-                            }
-                        )
-                        1 -> Connect(vm, state, onBack = { step = 0 }, onDone = { step = 2 })
-                        2 -> Permissions(vm, system, onNext = { step = 3 })
-                        else -> Ready(state, onStart = { vm.finishOnboarding(startMonitoring = true) }, onLater = { vm.finishOnboarding(startMonitoring = false) })
-                    }
+        AnimatedContent(
+            targetState = step,
+            transitionSpec = {
+                val forward = targetState > initialState
+                (slideInHorizontally(tween(320, easing = FastOutSlowInEasing)) { if (forward) it / 4 else -it / 4 } + fadeIn(tween(240))) togetherWith
+                    (slideOutHorizontally(tween(240)) { if (forward) -it / 4 else it / 4 } + fadeOut(tween(160)))
+            },
+            label = "step",
+            modifier = Modifier.weight(1f).widthIn(max = 560.dp)
+        ) { current ->
+            Box(Modifier.fillMaxSize()) {
+                when (current) {
+                    0 -> Welcome(onConnect = { step = 1 }, onDemo = { vm.setDemo(true); step = 2 })
+                    1 -> Connect(vm, state, onBack = { step = 0 }, onDone = { step = 2 })
+                    2 -> Permissions(vm, system, onNext = { step = 3 })
+                    else -> Ready(state, onStart = { vm.finishOnboarding(startMonitoring = true) }, onLater = { vm.finishOnboarding(startMonitoring = false) })
                 }
             }
         }
     }
 }
 
+/** Scrolling content with the step's buttons held at the bottom, where the thumb is. */
 @Composable
-private fun StepDots(step: Int, total: Int, modifier: Modifier = Modifier) {
-    val colors = Solar.colors
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        repeat(total) { i ->
-            val width by animateDpAsState(if (i == step) 22.dp else 6.dp, tween(350), label = "dot")
-            val tint by animateColorAsState(if (i <= step) colors.ink else colors.hairlineStrong, label = "dotTint")
-            Box(Modifier.height(6.dp).width(width).clip(CircleShape).background(tint))
-        }
+private fun StepScaffold(actions: @Composable ColumnScope.() -> Unit, body: @Composable ColumnScope.() -> Unit) {
+    val scroll = rememberScrollState()
+    Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scroll)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            content = body
+        )
+        // A hairline only while there is more to read under the buttons.
+        Box(Modifier.fillMaxWidth().height(1.dp).background(if (scroll.canScrollForward) Solar.colors.outline else Color.Transparent))
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = actions)
     }
 }
 
 @Composable
-private fun Welcome(onConnect: () -> Unit, onDemo: () -> Unit) {
-    val colors = Solar.colors
-    // Numbers step every few seconds, like a real inverter, so the digits roll instead of blur.
+private fun Welcome(onConnect: () -> Unit, onDemo: () -> Unit) = StepScaffold(
+    actions = {
+        PrimaryButton("Connect my inverter", onConnect, Modifier.fillMaxWidth())
+        SecondaryButton("Try with demo data", onDemo, Modifier.fillMaxWidth())
+    }
+) {
+    val c = Solar.colors
+    // A live preview that steps like a real inverter, every few seconds.
     val t by produceState(0f) {
         while (true) {
             delay(2600)
@@ -154,8 +166,25 @@ private fun Welcome(onConnect: () -> Unit, onDemo: () -> Unit) {
         }
     }
 
-    Spacer(Modifier.height(8.dp))
-    Panel(padding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+        Image(painterResource(R.drawable.ic_brand), contentDescription = null, modifier = Modifier.size(40.dp))
+        Spacer(Modifier.width(8.dp))
+        Text("Roshni", style = SolarType.title, color = c.ink)
+    }
+    Text(
+        "Know the moment the mains go off.",
+        style = SolarType.headline,
+        color = c.ink,
+        modifier = Modifier.padding(top = 20.dp).semantics { heading() }
+    )
+    Text(
+        "Roshni watches your solar inverter around the clock, rings like an alarm clock when the mains fail, and tells you how long your battery will last.",
+        style = SolarType.body,
+        color = c.ink2,
+        modifier = Modifier.padding(top = 8.dp)
+    )
+    Spacer(Modifier.height(16.dp))
+    SCard {
         PowerFlow(
             powers = FlowPowers(
                 solarW = 3200.0 + 900 * sin(t),
@@ -164,73 +193,53 @@ private fun Welcome(onConnect: () -> Unit, onDemo: () -> Unit) {
                 batteryW = -(2230.0 + 650 * sin(t))
             ),
             soc = 64.0 + 6 * sin(t / 2),
-            gridDown = false
+            gridDown = false,
+            lowBatteryPercent = 20
         )
     }
-    Spacer(Modifier.height(26.dp))
-    Text("Know the moment\nthe grid goes down.", style = SolarType.display, color = colors.ink)
-    Text(
-        "Solar Grid watches your inverter around the clock. When the mains fail it rings like an alarm clock and tells you exactly how long your battery will last.",
-        style = SolarType.body.copy(fontSize = SolarType.body.fontSize * 1.07f),
-        color = colors.ink2,
-        modifier = Modifier.padding(top = 12.dp)
-    )
-    Spacer(Modifier.height(20.dp))
-    Feature(Icons.Bell, colors.down, "An alarm, not just a notification", "Full-screen, over the lock screen, until you stop it.")
-    Feature(Icons.Battery, colors.battery, "Runtime that learns your battery", "Calibrates against real discharges, not the label.")
-    Feature(Icons.Sparkle, colors.solar, "Forecasts your load-shedding", "Spots the schedule in your history and warns you first.")
-    Spacer(Modifier.height(28.dp))
-    PrimaryButton("Connect my inverter", onConnect, Modifier.fillMaxWidth(), icon = Icons.Live)
-    Spacer(Modifier.height(10.dp))
-    GhostButton("Explore with demo data", onDemo, Modifier.fillMaxWidth(), icon = Icons.Flask)
+    Spacer(Modifier.height(16.dp))
+    Feature(Icons.Bell, "An alarm, not just a notification", "It shows over the lock screen and keeps ringing until you stop it.")
+    Feature(Icons.Battery, "Runtime that learns your battery", "It measures real discharges, not the number on the label.")
+    Feature(Icons.Clock, "Warns you before load-shedding", "It spots the schedule in your own history.")
 }
 
 @Composable
-private fun Feature(icon: androidx.compose.ui.graphics.vector.ImageVector, tone: androidx.compose.ui.graphics.Color, title: String, body: String) {
-    val colors = Solar.colors
-    Row(Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(tone.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = tone, modifier = Modifier.size(20.dp))
-        }
+private fun Feature(icon: ImageVector, title: String, body: String) {
+    val c = Solar.colors
+    Row(Modifier.padding(vertical = 8.dp)) {
+        Icon(icon, null, tint = c.brand, modifier = Modifier.size(22.dp).padding(top = 1.dp))
         Spacer(Modifier.width(14.dp))
         Column {
-            Text(title, style = SolarType.bodyStrong, color = colors.ink)
-            Text(body, style = SolarType.caption, color = colors.ink3)
+            Text(title, style = SolarType.bodyStrong, color = c.ink)
+            Text(body, style = SolarType.caption, color = c.ink3)
         }
     }
 }
 
 @Composable
-private fun Connect(vm: MainViewModel, state: UiState, onBack: () -> Unit, onDone: () -> Unit) {
-    val colors = Solar.colors
-    Text("Connect Solarman", style = SolarType.hero, color = colors.ink, modifier = Modifier.padding(top = 8.dp))
+private fun Connect(vm: MainViewModel, state: UiState, onBack: () -> Unit, onDone: () -> Unit) = StepScaffold(
+    actions = {
+        if (state.account != null) PrimaryButton("Continue", onDone, Modifier.fillMaxWidth())
+        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+    }
+) {
+    val c = Solar.colors
+    Text("Connect Solarman", style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
     Text(
-        "Readings come from Solarman's OpenAPI — the same cloud your inverter's Wi-Fi logger already reports to.",
+        "Readings come from Solarman's OpenAPI, the same cloud your inverter's Wi-Fi stick already reports to.",
         style = SolarType.body,
-        color = colors.ink2,
-        modifier = Modifier.padding(top = 8.dp, bottom = 18.dp)
+        color = c.ink2,
+        modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
     )
 
     val existing = state.account
     if (existing != null) {
-        Panel(glow = colors.ok) {
-            SettingRow(
-                title = "Connected",
-                subtitle = "${existing.email} · inverter ${existing.deviceSn}",
-                icon = Icons.Check,
-                iconTint = colors.ok
-            )
+        ListGroup(null) {
+            SettingRow("Connected", subtitle = "${existing.email} · inverter ${existing.deviceSn}", icon = Icons.Check, iconTint = c.ok)
         }
-        Spacer(Modifier.height(16.dp))
-        PrimaryButton("Continue", onDone, Modifier.fillMaxWidth())
-        Spacer(Modifier.height(10.dp))
-        GhostButton("Back", onBack, Modifier.fillMaxWidth())
-        return
+    } else {
+        AccountForm(vm = vm, initial = null, onDone = onDone)
     }
-
-    AccountForm(vm = vm, initial = null, onDone = onDone)
-    Spacer(Modifier.height(10.dp))
-    GhostButton("Back", onBack, Modifier.fillMaxWidth())
 }
 
 /**
@@ -239,7 +248,7 @@ private fun Connect(vm: MainViewModel, state: UiState, onBack: () -> Unit, onDon
  */
 @Composable
 fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
-    val colors = Solar.colors
+    val c = Solar.colors
     val scope = rememberCoroutineScope()
     val system = LocalSystem.current
 
@@ -268,43 +277,27 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
         SolarField("Solarman email", email, { email = it }, keyboard = KeyboardType.Email)
         SolarField(if (initial != null) "Password (leave blank to keep)" else "Solarman password", password, { password = it }, secret = true)
 
-        Row(
-            Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { help = !help }
-                .padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Info, null, tint = colors.grid, modifier = Modifier.size(16.dp))
+        TextButton(onClick = { help = !help }, contentPadding = PaddingValues(horizontal = 0.dp)) {
+            Icon(Icons.Info, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Where do I get an App ID?", style = SolarType.bodyStrong, color = colors.grid)
+            Text("Where do I get an App ID?", style = SolarType.bodyStrong)
         }
         AnimatedVisibility(help, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-            Column(
-                Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(colors.grid.copy(alpha = 0.08f))
-                    .padding(14.dp)
-            ) {
+            SCard(container = c.surfaceVariant) {
                 Text(
-                    "Solarman issues OpenAPI credentials (an App ID and App Secret) to plant owners on request. " +
+                    "Solarman gives OpenAPI credentials (an App ID and App Secret) to plant owners who ask. " +
                         "Contact Solarman support, say it's for monitoring your own plant, and include the email you sign in with. " +
                         "Your email and password are the ones you already use in the Solarman app.",
                     style = SolarType.caption,
-                    color = colors.ink2
+                    color = c.ink2
                 )
-                Text(
-                    "Solarman's OpenAPI FAQ ›",
-                    style = SolarType.bodyStrong,
-                    color = colors.grid,
-                    modifier = Modifier.padding(top = 8.dp).clickable { system?.openUrl(OPENAPI_HELP) }
-                )
+                TextButton(onClick = { system?.openUrl(OPENAPI_HELP) }, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                    Text("Solarman's OpenAPI FAQ", style = SolarType.bodyStrong)
+                }
             }
         }
 
-        error?.let {
-            Text(it, style = SolarType.caption, color = colors.down)
-        }
+        error?.let { Text(it, style = SolarType.caption, color = c.down) }
 
         val list = devices
         if (list == null) {
@@ -326,47 +319,42 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
                         busy = false
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
             )
             if (busy) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    CircularProgressIndicator(color = colors.ok, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
                 }
             }
         } else {
             if (list.isNotEmpty()) {
-                SectionLabel("Inverters on this account", modifier = Modifier.padding(top = 6.dp))
-                list.forEach { device ->
-                    val selected = chosen == device.sn
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (selected) colors.ok.copy(alpha = 0.10f) else colors.track)
-                            .border(1.dp, if (selected) colors.ok else colors.hairline, RoundedCornerShape(16.dp))
-                            .clickable(role = Role.RadioButton) { chosen = device.sn }
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(device.sn, style = SolarType.bodyStrong, color = colors.ink)
-                            Text(
-                                device.station + when (device.online) {
-                                    true -> " · online"
-                                    false -> " · offline"
-                                    null -> ""
-                                },
-                                style = SolarType.caption,
-                                color = colors.ink3
-                            )
+                ListGroup("Inverters on this account") {
+                    list.forEach { device ->
+                        val selected = chosen == device.sn
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .selectable(selected = selected, role = Role.RadioButton) { chosen = device.sn; manualSn = "" }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(device.sn, style = SolarType.body, color = c.ink)
+                                Text(
+                                    device.station + when (device.online) {
+                                        true -> " · online"
+                                        false -> " · offline"
+                                        null -> ""
+                                    },
+                                    style = SolarType.caption,
+                                    color = c.ink3
+                                )
+                            }
                         }
-                        if (selected) Icon(Icons.Check, null, tint = colors.ok, modifier = Modifier.size(20.dp))
                     }
                 }
             }
-        }
-
-        if (devices != null) {
             SolarField("Or enter the serial number", manualSn, { manualSn = it; if (it.isNotBlank()) chosen = null })
             val sn = chosen ?: manualSn
             PrimaryButton(
@@ -377,9 +365,7 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
                     vm.saveAccount(draft(sn).copy(label = label))
                     onDone()
                 },
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                color = colors.ok,
-                textColor = colors.onAccent
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
             )
         }
     }
@@ -387,79 +373,53 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
 
 @Composable
 private fun Permissions(vm: MainViewModel, system: SystemActions, onNext: () -> Unit) {
-    val colors = Solar.colors
+    val c = Solar.colors
     val p by vm.permissions.collectAsStateWithLifecycle()
 
-    Text("Let it wake you", style = SolarType.hero, color = colors.ink, modifier = Modifier.padding(top = 8.dp))
-    Text(
-        "Android tries hard to stop apps working in the background. Three switches keep the alarm reliable.",
-        style = SolarType.body,
-        color = colors.ink2,
-        modifier = Modifier.padding(top = 8.dp, bottom = 18.dp)
-    )
-
-    Panel {
-        PermissionRow("Notifications", "So any alert can reach you", p.notifications, system::requestNotifications)
-        PermissionRow("Full-screen alarm", "Lets the alarm take over a locked screen", p.fullScreen, system::openFullScreenSettings)
-        PermissionRow("Run in background", "Keeps checking while the phone sleeps", p.unrestricted, system::requestUnrestricted)
-        PermissionRow("Precise timing", "Optional, for checks right after each upload", p.exactAlarms, system::openExactAlarmSettings)
-    }
-
-    Spacer(Modifier.height(20.dp))
-    PrimaryButton(if (p.blocking == 0) "Continue" else "Continue anyway", onNext, Modifier.fillMaxWidth())
-}
-
-@Composable
-private fun PermissionRow(title: String, subtitle: String, granted: Boolean, onGrant: () -> Unit) {
-    val colors = Solar.colors
-    SettingRow(
-        title = title,
-        subtitle = subtitle,
-        icon = if (granted) Icons.Check else Icons.Shield,
-        iconTint = if (granted) colors.ok else colors.warn,
-        onClick = if (granted) null else onGrant
-    ) {
-        if (!granted) {
-            Box(
-                Modifier
-                    .clip(CircleShape)
-                    .background(colors.ink)
-                    .clickable(onClick = onGrant)
-                    .padding(horizontal = 14.dp, vertical = 8.dp)
-            ) {
-                Text("Allow", style = SolarType.bodyStrong, color = colors.bg)
-            }
+    StepScaffold(actions = { PrimaryButton(if (p.blocking == 0) "Continue" else "Continue anyway", onNext, Modifier.fillMaxWidth()) }) {
+        Text("Let it wake you", style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
+        Text(
+            "Android tries hard to stop apps working in the background. These keep the alarm reliable.",
+            style = SolarType.body,
+            color = c.ink2,
+            modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+        )
+        ListGroup(null) {
+            PermissionRow("Notifications", "So any alert can reach you", p.notifications, system::requestNotifications)
+            PermissionRow("Full-screen alarm", "Shows the alarm over a locked screen", p.fullScreen, system::openFullScreenSettings)
+            PermissionRow("Run in background", "Keeps checking while the phone sleeps", p.unrestricted, system::requestUnrestricted)
+            PermissionRow("Precise timing", "Optional. Checks land right after each upload.", p.exactAlarms, system::openExactAlarmSettings)
         }
     }
 }
 
 @Composable
-private fun Ready(state: UiState, onStart: () -> Unit, onLater: () -> Unit) {
-    val colors = Solar.colors
-    Spacer(Modifier.height(40.dp))
-    Box(
-        Modifier
-            .size(84.dp)
-            .clip(CircleShape)
-            .background(colors.ok.copy(alpha = 0.14f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(Icons.Check, null, tint = colors.ok, modifier = Modifier.size(40.dp))
+private fun PermissionRow(title: String, subtitle: String, granted: Boolean, onGrant: () -> Unit) {
+    val c = Solar.colors
+    SettingRow(title, subtitle = subtitle, icon = if (granted) Icons.Check else Icons.Shield, iconTint = if (granted) c.ok else c.ink2, onClick = if (granted) null else onGrant) {
+        if (!granted) TextButton(onClick = onGrant) { Text("Allow", style = SolarType.bodyStrong) }
     }
-    Spacer(Modifier.height(24.dp))
-    Text("You're set.", style = SolarType.display, color = colors.ink)
+}
+
+@Composable
+private fun Ready(state: UiState, onStart: () -> Unit, onLater: () -> Unit) = StepScaffold(
+    actions = {
+        PrimaryButton("Start watching", onStart, Modifier.fillMaxWidth())
+        TextButton(onClick = onLater, modifier = Modifier.fillMaxWidth()) { Text("Just look around") }
+    }
+) {
+    val c = Solar.colors
+    Spacer(Modifier.height(32.dp))
+    Icon(Icons.Check, null, tint = c.ok, modifier = Modifier.size(40.dp))
+    Text("You're set", style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 16.dp).semantics { heading() })
     Text(
         if (state.settings.demoMode) {
-            "You're exploring a simulated system with two weeks of history. Connect your own inverter any time in Settings."
+            "You're looking at a simulated home with two weeks of history. Connect your own inverter any time in Settings."
         } else {
-            "Monitoring runs quietly in the background with a small ongoing notification. Outages ring; everything else just notifies."
+            "Roshni runs quietly in the background with a small ongoing notification. A cut rings; everything else just notifies."
         },
         style = SolarType.body,
-        color = colors.ink2,
-        modifier = Modifier.padding(top = 10.dp)
+        color = c.ink2,
+        modifier = Modifier.padding(top = 8.dp)
     )
-    Spacer(Modifier.height(32.dp))
-    PrimaryButton("Start monitoring", onStart, Modifier.fillMaxWidth(), color = colors.ok, textColor = colors.onAccent, icon = Icons.Live)
-    Spacer(Modifier.height(10.dp))
-    GhostButton("Just look around", onLater, Modifier.fillMaxWidth())
 }

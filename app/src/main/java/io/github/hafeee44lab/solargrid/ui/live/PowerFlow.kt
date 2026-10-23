@@ -1,8 +1,14 @@
 package io.github.hafeee44lab.solargrid.ui.live
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -12,27 +18,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -41,310 +45,237 @@ import androidx.compose.ui.unit.dp
 import io.github.hafeee44lab.solargrid.domain.FlowPowers
 import io.github.hafeee44lab.solargrid.domain.kw
 import io.github.hafeee44lab.solargrid.ui.components.Icons
-import io.github.hafeee44lab.solargrid.ui.components.RollingText
-import io.github.hafeee44lab.solargrid.ui.components.SectionLabel
 import io.github.hafeee44lab.solargrid.ui.theme.Solar
+import io.github.hafeee44lab.solargrid.ui.theme.SolarColors
 import io.github.hafeee44lab.solargrid.ui.theme.SolarType
-import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.ln
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 private const val FLOW_MIN_W = 50.0
 
+private val NODE = 52.dp
+private val HUB = 40.dp
+private val CORNER = 18.dp
+
 /**
- * Where the power is going, right now. Comets travel each live connection; how fast and how
- * many scale with the watts on that wire, so 4 kW of sun looks like 4 kW of sun.
+ * Where power is going, drawn the way SOLARMAN draws it: an inverter hub, solar above,
+ * battery, home and grid below, joined by thin wires with rounded elbows. A live wire takes
+ * its source's colour and carries slow marching dashes in the direction of flow.
  */
 @Composable
 fun PowerFlow(
     powers: FlowPowers,
     soc: Double?,
     gridDown: Boolean?,
+    lowBatteryPercent: Int,
     modifier: Modifier = Modifier
 ) {
-    val colors = Solar.colors
-    val animate = !Solar.reduceMotion
-
-    var time by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(animate) {
-        if (!animate) return@LaunchedEffect
-        val start = withFrameNanos { it }
-        while (true) {
-            withFrameNanos { time = (it - start) / 1_000_000_000f }
-        }
-    }
+    val c = Solar.colors
+    val still = Solar.reduceMotion
+    val phase by rememberInfiniteTransition(label = "flow").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1600, easing = LinearEasing), RepeatMode.Restart),
+        label = "phase"
+    )
 
     val solar = powers.solarW ?: 0.0
     val load = powers.loadW ?: 0.0
     val grid = powers.gridW ?: 0.0
     val battery = powers.batteryW ?: 0.0
+    val batteryTint = c.battery(soc, lowBatteryPercent)
 
     val solarLive = solar > FLOW_MIN_W
     val gridLive = abs(grid) > FLOW_MIN_W && gridDown != true
     val batteryLive = abs(battery) > FLOW_MIN_W
     val homeLive = load > FLOW_MIN_W
 
-    val socFill by animateFloatAsState(((soc ?: 0.0) / 100.0).toFloat().coerceIn(0f, 1f), tween(900), label = "soc")
-
-    // The line into the house takes the colour of whoever is supplying most of it.
+    // The house wire takes the colour of whoever supplies most of it.
     val supplier = listOf(
-        colors.solar to solar,
-        colors.grid to grid.coerceAtLeast(0.0),
-        colors.battery to battery.coerceAtLeast(0.0)
-    ).maxByOrNull { it.second }?.takeIf { it.second > FLOW_MIN_W }?.first ?: colors.home
+        c.solar to solar,
+        c.grid to grid.coerceAtLeast(0.0),
+        batteryTint to battery.coerceAtLeast(0.0)
+    ).maxByOrNull { it.second }?.takeIf { it.second > FLOW_MIN_W }?.first ?: c.home
 
     val description = buildString {
         append("Power flow. ")
         if (powers.solarW != null) append("Solar ${kw(solar)}. ")
-        if (gridDown == true) append("Grid offline. ") else if (powers.gridW != null) append(if (grid >= 0) "Grid importing ${kw(grid)}. " else "Exporting ${kw(-grid)}. ")
-        if (powers.batteryW != null) append(if (battery > 0) "Battery discharging ${kw(battery)}. " else if (battery < 0) "Battery charging ${kw(-battery)}. " else "Battery idle. ")
+        when {
+            gridDown == true -> append("Grid off. ")
+            powers.gridW != null -> append(if (grid >= 0) "Using ${kw(grid)} from the grid. " else "Sending ${kw(-grid)} to the grid. ")
+        }
+        if (powers.batteryW != null) append(if (battery > FLOW_MIN_W) "Battery supplying ${kw(battery)}. " else if (battery < -FLOW_MIN_W) "Battery charging at ${kw(-battery)}. " else "Battery idle. ")
         if (powers.loadW != null) append("Home using ${kw(load)}.")
     }
 
+    // Captions grow with the system font size; give them room instead of clipping.
+    val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
     BoxWithConstraints(
         modifier
             .fillMaxWidth()
-            .height(312.dp)
+            .height(272.dp + 44.dp * (fontScale - 1f))
             .semantics { contentDescription = description }
     ) {
         val w = maxWidth
-        val nodeR = 30.dp
-        val solarAt = Pos(w * 0.5f, 44.dp)
-        val gridAt = Pos(w * 0.14f, 156.dp)
-        val batteryAt = Pos(w * 0.86f, 156.dp)
-        val hubAt = Pos(w * 0.5f, 156.dp)
-        val homeAt = Pos(w * 0.5f, 268.dp)
+        val solarAt = Spot(w * 0.5f, 34.dp)
+        val hubAt = Spot(w * 0.5f, 116.dp)
+        val batteryAt = Spot(w * 0.16f, 196.dp)
+        val homeAt = Spot(w * 0.5f, 196.dp)
+        val gridAt = Spot(w * 0.84f, 196.dp)
 
         Canvas(Modifier.fillMaxSize()) {
-            val r = nodeR.toPx()
-            val hubR = 13.dp.toPx()
+            val node = NODE.toPx() / 2
+            val hub = HUB.toPx() / 2
             val s = solarAt.px(this)
-            val g = gridAt.px(this)
-            val b = batteryAt.px(this)
             val h = hubAt.px(this)
+            val b = batteryAt.px(this)
             val home = homeAt.px(this)
+            val g = gridAt.px(this)
+            val r = CORNER.toPx()
+            val t = if (still) 0f else phase
 
-            // Wires
-            wire(s, h, r, hubR, colors.solar, solarLive, forward = true, watts = solar, time = time)
+            // Solar → hub
+            wire(straight(Offset(s.x, s.y + node), Offset(h.x, h.y - hub)), c, c.solar, solarLive, forward = true, phase = t, watts = solar)
+            // Hub → home
+            wire(straight(Offset(h.x, h.y + hub), Offset(home.x, home.y - node)), c, supplier, homeLive, forward = true, phase = t, watts = load)
+            // Hub ↔ battery (built hub → battery; flow reverses when the battery supplies the house)
+            wire(elbow(Offset(h.x - hub, h.y), Offset(b.x, b.y - node), r), c, batteryTint, batteryLive, forward = battery < 0, phase = t, watts = abs(battery))
+            // Hub ↔ grid (built hub → grid; import flows toward the hub)
+            val gridPath = elbow(Offset(h.x + hub, h.y), Offset(g.x, g.y - node), r)
             if (gridDown == true) {
-                deadWire(g, h, r, hubR, colors.down)
+                drawPath(gridPath, c.down, style = Stroke(1.5.dp.toPx(), cap = StrokeCap.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 5.dp.toPx()))))
             } else {
-                wire(g, h, r, hubR, colors.grid, gridLive, forward = grid >= 0, watts = abs(grid), time = time)
+                wire(gridPath, c, c.grid, gridLive, forward = grid < 0, phase = t, watts = abs(grid))
             }
-            wire(b, h, r, hubR, colors.battery, batteryLive, forward = battery > 0, watts = abs(battery), time = time)
-            wire(h, home, hubR, r, supplier, homeLive, forward = true, watts = load, time = time)
-
-            // Hub: the inverter. A slow orbit says "this is live data".
-            drawCircle(colors.surfaceHigh, hubR, h)
-            drawCircle(colors.hairlineStrong, hubR, h, style = Stroke(1.dp.toPx()))
-            rotate(degrees = time * 90f, pivot = h) {
-                drawArc(
-                    brush = Brush.sweepGradient(listOf(Color.Transparent, colors.ink2.copy(alpha = 0.8f)), center = h),
-                    startAngle = 0f,
-                    sweepAngle = 300f,
-                    useCenter = false,
-                    topLeft = Offset(h.x - hubR - 4.dp.toPx(), h.y - hubR - 4.dp.toPx()),
-                    size = androidx.compose.ui.geometry.Size((hubR + 4.dp.toPx()) * 2, (hubR + 4.dp.toPx()) * 2),
-                    style = Stroke(1.4.dp.toPx(), cap = StrokeCap.Round)
-                )
-            }
-            drawCircle(colors.ink2, 3.dp.toPx(), h)
-
-            // Nodes
-            node(s, r, colors.solar, solarLive, time)
-            node(g, r, if (gridDown == true) colors.down else colors.grid, gridLive || gridDown == true, time, alarm = gridDown == true)
-            node(b, r, colors.battery, batteryLive, time)
-            node(home, r, supplier, homeLive, time)
-
-            // Battery level as a ring around its node.
-            drawArc(
-                color = colors.battery,
-                startAngle = -90f,
-                sweepAngle = 360f * socFill,
-                useCenter = false,
-                topLeft = Offset(b.x - r - 5.dp.toPx(), b.y - r - 5.dp.toPx()),
-                size = androidx.compose.ui.geometry.Size((r + 5.dp.toPx()) * 2, (r + 5.dp.toPx()) * 2),
-                style = Stroke(3.dp.toPx(), cap = StrokeCap.Round)
-            )
         }
 
-        // Glyphs
-        // The spin is read inside the graphics layer, so the sun turns without recomposing the diagram.
-        val spinRate = 8f + (solar / 400.0).toFloat() * 6f
-        Glyph(solarAt, if (solar > FLOW_MIN_W || (powers.solarW == null)) Icons.Sun else Icons.Moon, colors.solar, { if (solarLive) (time * spinRate) % 360f else 0f }, dim = !solarLive)
-        Glyph(gridAt, Icons.Pylon, if (gridDown == true) colors.down else colors.grid, { 0f }, dim = !gridLive && gridDown != true)
-        Glyph(batteryAt, Icons.Battery, colors.battery, { 0f }, dim = !batteryLive)
-        Glyph(homeAt, Icons.Home, colors.home, { 0f }, dim = false)
+        Node(solarAt, if (solarLive || powers.solarW == null) Icons.Sun else Icons.Moon, c.solar, active = solarLive)
+        Hub(hubAt)
+        Node(batteryAt, Icons.Battery, batteryTint, active = soc != null)
+        Node(homeAt, Icons.Home, c.home, active = homeLive)
+        Node(gridAt, Icons.Pylon, if (gridDown == true) c.down else c.grid, active = gridLive, alarm = gridDown == true)
 
-        // Labels
+        Caption(Spot(solarAt.x + 70.dp, solarAt.y - 20.dp), "Solar", if (powers.solarW == null) "—" else kw(solar), align = TextAlign.Start)
         Caption(
-            at = Pos(solarAt.x + 92.dp, solarAt.y - 2.dp),
-            label = "Solar",
-            value = if (powers.solarW == null) "—" else kw(solar),
-            tone = colors.solar
-        )
-        Caption(
-            at = Pos(gridAt.x, gridAt.y + 54.dp),
-            label = when {
-                gridDown == true -> "Grid"
-                grid < -FLOW_MIN_W -> "Exporting"
-                else -> "Grid"
+            Spot(batteryAt.x, batteryAt.y + 32.dp),
+            when {
+                battery > FLOW_MIN_W -> "Battery · out"
+                battery < -FLOW_MIN_W -> "Battery · in"
+                else -> "Battery"
             },
-            value = when {
-                gridDown == true -> "Offline"
+            buildString {
+                append(soc?.let { "%.0f%%".format(it) } ?: "—")
+                if (batteryLive) append(" · ${kw(abs(battery))}")
+            }
+        )
+        Caption(Spot(homeAt.x, homeAt.y + 32.dp), "Home", if (powers.loadW == null) "—" else kw(load))
+        Caption(
+            Spot(gridAt.x, gridAt.y + 32.dp),
+            if (grid < -FLOW_MIN_W && gridDown != true) "Grid · sending" else "Grid",
+            when {
+                gridDown == true -> "Off"
                 powers.gridW == null -> "—"
                 else -> kw(abs(grid))
             },
-            tone = if (gridDown == true) colors.down else colors.grid
-        )
-        Caption(
-            at = Pos(batteryAt.x, batteryAt.y + 54.dp),
-            label = when {
-                battery > FLOW_MIN_W -> "Discharging"
-                battery < -FLOW_MIN_W -> "Charging"
-                else -> "Battery"
-            },
-            value = if (powers.batteryW == null) "—" else if (batteryLive) kw(abs(battery)) else "${soc?.let { "%.0f".format(it) } ?: "—"}%",
-            tone = colors.battery
-        )
-        Caption(
-            at = Pos(homeAt.x + 92.dp, homeAt.y - 2.dp),
-            label = "Home",
-            value = if (powers.loadW == null) "—" else kw(load),
-            tone = colors.home
+            valueColor = if (gridDown == true) c.down else null
         )
     }
 }
 
-private data class Pos(val x: Dp, val y: Dp) {
+private data class Spot(val x: Dp, val y: Dp) {
     fun px(scope: DrawScope) = with(scope) { Offset(x.toPx(), y.toPx()) }
 }
 
 @Composable
-private fun Glyph(at: Pos, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, rotation: () -> Float, dim: Boolean) {
-    val alpha by animateFloatAsState(if (dim) 0.45f else 1f, tween(600), label = "glyph")
-    Icon(
-        icon,
-        contentDescription = null,
-        tint = tint,
-        modifier = Modifier
-            .offset(at.x - 13.dp, at.y - 13.dp)
-            .size(26.dp)
-            .graphicsLayer {
-                rotationZ = rotation()
-                this.alpha = alpha
-            }
-    )
+private fun Node(at: Spot, icon: ImageVector, tint: Color, active: Boolean, alarm: Boolean = false) {
+    val c = Solar.colors
+    Box(
+        Modifier
+            .offset(at.x - NODE / 2, at.y - NODE / 2)
+            .size(NODE)
+            .clip(CircleShape)
+            // A pale wash of the node's colour (a little stronger on dark so it doesn't vanish).
+            // Only the dead grid gets a ring, so it stands apart from everything else.
+            .background(if (active || alarm) tint.copy(alpha = if (c.isDark) 0.16f else 0.10f) else c.surfaceVariant)
+            .then(if (alarm) Modifier.border(1.5.dp, tint, CircleShape) else Modifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, null, tint = if (active || alarm) tint else c.ink3, modifier = Modifier.size(24.dp))
+    }
 }
 
 @Composable
-private fun Caption(at: Pos, label: String, value: String, tone: Color) {
-    val colors = Solar.colors
-    Column(
-        modifier = Modifier
-            .offset(at.x - 52.dp, at.y - 18.dp)
-            .width(104.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+private fun Hub(at: Spot) {
+    val c = Solar.colors
+    Box(
+        Modifier
+            .offset(at.x - HUB / 2, at.y - HUB / 2)
+            .size(HUB)
+            .clip(RoundedCornerShape(10.dp))
+            .background(c.surface)
+            .border(1.dp, c.outlineStrong, RoundedCornerShape(10.dp)),
+        contentAlignment = Alignment.Center
     ) {
-        SectionLabel(label, color = tone.copy(alpha = 0.9f))
-        Box(contentAlignment = Alignment.Center) {
-            RollingText(value, SolarType.numberSmall, colors.ink)
-        }
+        Icon(Icons.Inverter, null, tint = c.ink2, modifier = Modifier.size(20.dp))
     }
 }
 
-/** A wire between two nodes, with comets riding it when power flows. */
+@Composable
+private fun Caption(at: Spot, label: String, value: String, align: TextAlign = TextAlign.Center, valueColor: Color? = null) {
+    val c = Solar.colors
+    val width = 124.dp
+    Column(
+        Modifier
+            .offset(if (align == TextAlign.Center) at.x - width / 2 else at.x - 30.dp, at.y)
+            .width(width),
+        horizontalAlignment = if (align == TextAlign.Center) Alignment.CenterHorizontally else Alignment.Start
+    ) {
+        Text(label, style = SolarType.caption, color = c.ink3, textAlign = align, maxLines = 2)
+        Text(value, style = SolarType.figureS, color = valueColor ?: c.ink, textAlign = align, maxLines = 2)
+    }
+}
+
+private fun straight(from: Offset, to: Offset) = Path().apply {
+    moveTo(from.x, from.y)
+    lineTo(to.x, to.y)
+}
+
+/** Horizontal out of the hub, a rounded elbow, then straight down into the node. */
+private fun elbow(from: Offset, to: Offset, radius: Float) = Path().apply {
+    val dir = if (to.x < from.x) -1f else 1f
+    moveTo(from.x, from.y)
+    lineTo(to.x - dir * radius, from.y)
+    quadraticTo(to.x, from.y, to.x, from.y + radius)
+    lineTo(to.x, to.y)
+}
+
 private fun DrawScope.wire(
-    from: Offset,
-    to: Offset,
-    fromR: Float,
-    toR: Float,
+    path: Path,
+    c: SolarColors,
     color: Color,
     live: Boolean,
     forward: Boolean,
-    watts: Double,
-    time: Float
+    phase: Float,
+    watts: Double
 ) {
-    val (a, b) = trim(from, to, fromR + 6.dp.toPx(), toR + 6.dp.toPx())
-
-    drawLine(color.copy(alpha = if (live) 0.22f else 0.08f), a, b, strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
-    if (!live) return
-
-    // Log scale: 100 W is a gentle drift, 6 kW is a rush, nothing ever stops reading.
-    val strength = (ln(1.0 + watts / 100.0) / ln(1.0 + 80.0)).toFloat().coerceIn(0.08f, 1f)
-    val speed = 0.22f + 0.55f * strength
-    val count = 1 + (strength * 3f).toInt()
-    val (start, end) = if (forward) a to b else b to a
-    val dx = end.x - start.x
-    val dy = end.y - start.y
-    val length = sqrt(dx * dx + dy * dy).coerceAtLeast(1f)
-    val tail = (30.dp.toPx() / length).coerceAtMost(0.45f)
-
-    for (i in 0 until count) {
-        val t = ((time * speed) + i.toFloat() / count) % 1f
-        val head = Offset(start.x + dx * t, start.y + dy * t)
-        val tailT = (t - tail).coerceAtLeast(0f)
-        val tailAt = Offset(start.x + dx * tailT, start.y + dy * tailT)
-        val fade = sin(t * PI).toFloat().coerceIn(0f, 1f)
-
-        drawLine(
-            brush = Brush.linearGradient(listOf(color.copy(alpha = 0f), color.copy(alpha = 0.9f * fade)), start = tailAt, end = head),
-            start = tailAt,
-            end = head,
-            strokeWidth = 3.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-        drawCircle(color.copy(alpha = 0.25f * fade), radius = 8.dp.toPx(), center = head)
-        drawCircle(lerp(color, Color.White, 0.6f).copy(alpha = fade), radius = 2.6.dp.toPx(), center = head)
+    if (!live) {
+        drawPath(path, c.outlineStrong, style = Stroke(1.dp.toPx(), cap = StrokeCap.Round))
+        return
     }
-}
+    drawPath(path, color, style = Stroke(2.5.dp.toPx(), cap = StrokeCap.Round))
 
-private fun DrawScope.deadWire(from: Offset, to: Offset, fromR: Float, toR: Float, color: Color) {
-    val (a, b) = trim(from, to, fromR + 6.dp.toPx(), toR + 6.dp.toPx())
-    drawLine(
-        color.copy(alpha = 0.5f), a, b,
-        strokeWidth = 2.dp.toPx(),
-        cap = StrokeCap.Round,
-        pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 7.dp.toPx()))
-    )
-    val mid = Offset((a.x + b.x) / 2, (a.y + b.y) / 2)
-    val x = 5.dp.toPx()
-    drawLine(color, Offset(mid.x - x, mid.y - x), Offset(mid.x + x, mid.y + x), 2.2.dp.toPx(), StrokeCap.Round)
-    drawLine(color, Offset(mid.x - x, mid.y + x), Offset(mid.x + x, mid.y - x), 2.2.dp.toPx(), StrokeCap.Round)
-}
-
-private fun DrawScope.node(center: Offset, r: Float, color: Color, live: Boolean, time: Float, alarm: Boolean = false) {
-    if (live) {
-        val pulse = if (alarm) (0.5f + 0.5f * sin(time * 4f)) else 1f
-        drawCircle(
-            Brush.radialGradient(listOf(color.copy(alpha = 0.32f * pulse), Color.Transparent), center = center, radius = r * 2.1f),
-            radius = r * 2.1f,
-            center = center
+    // Dashes march toward the receiving end, a little quicker when a lot of power is on the wire.
+    val dash = 5.dp.toPx()
+    val gap = 9.dp.toPx()
+    val period = dash + gap
+    val speed = if (watts > 2500) 2f else 1f
+    val offset = period * ((phase * speed) % 1f)
+    drawPath(
+        path,
+        lerp(color, c.surface, 0.62f),
+        style = Stroke(
+            2.5.dp.toPx(),
+            cap = StrokeCap.Round,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, gap), if (forward) -offset else offset)
         )
-        if (alarm) {
-            val ring = (time * 0.7f) % 1f
-            drawCircle(color.copy(alpha = 0.5f * (1f - ring)), radius = r + r * 0.9f * ring, center = center, style = Stroke(1.5.dp.toPx()))
-        }
-    }
-    drawCircle(
-        brush = Brush.verticalGradient(
-            listOf(color.copy(alpha = if (live) 0.20f else 0.07f), color.copy(alpha = if (live) 0.06f else 0.03f)),
-            startY = center.y - r,
-            endY = center.y + r
-        ),
-        radius = r,
-        center = center
     )
-    drawCircle(color.copy(alpha = if (live) 0.85f else 0.25f), r, center, style = Stroke(1.5.dp.toPx()))
-}
-
-private fun trim(from: Offset, to: Offset, fromR: Float, toR: Float): Pair<Offset, Offset> {
-    val dx = to.x - from.x
-    val dy = to.y - from.y
-    val len = sqrt(dx * dx + dy * dy).coerceAtLeast(0.001f)
-    val ux = dx / len
-    val uy = dy / len
-    return Offset(from.x + ux * fromR, from.y + uy * fromR) to Offset(to.x - ux * toR, to.y - uy * toR)
 }

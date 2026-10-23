@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Roshni mark for in-app use: the house with its window lit. Not tinted. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF2457C5"
+        android:pathData="M12,2.6 L21.3,10.6 C21.7,10.95 21.45,11.6 20.9,11.6 L19.3,11.6 L19.3,19.95 C19.3,20.7 18.7,21.3 17.95,21.3 L6.05,21.3 C5.3,21.3 4.7,20.7 4.7,19.95 L4.7,11.6 L3.1,11.6 C2.55,11.6 2.3,10.95 2.7,10.6 Z" />
+    <path
+        android:fillColor="#FFFFC043"
+        android:pathData="M10.1,12.6 L13.9,12.6 C14.2,12.6 14.4,12.8 14.4,13.1 L14.4,16.9 C14.4,17.2 14.2,17.4 13.9,17.4 L10.1,17.4 C9.8,17.4 9.6,17.2 9.6,16.9 L9.6,13.1 C9.6,12.8 9.8,12.6 10.1,12.6 Z" />
+</vector>

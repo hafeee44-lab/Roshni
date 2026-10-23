@@ -42,14 +42,14 @@ class StatusTile : TileService() {
         val ui = buildHomeUi(graph.state(settings.profile).snapshot, settings.monitoring)
 
         tile.label = when (ui.heroRole) {
-            StateRole.UP -> "Grid online"
-            StateRole.DOWN -> "Grid down"
+            StateRole.UP -> "Mains on"
+            StateRole.DOWN -> "Mains off"
             StateRole.NEUTRAL -> ui.heroState
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             tile.subtitle = if (ui.soc != null) "Battery ${ui.socText}%" else "No data"
         }
-        tile.icon = Icon.createWithResource(this, if (ui.heroRole == StateRole.DOWN) R.drawable.ic_stat_outage else R.drawable.ic_stat_bolt)
+        tile.icon = Icon.createWithResource(this, if (ui.heroRole == StateRole.DOWN) R.drawable.ic_stat_home_off else R.drawable.ic_stat_home)
         tile.state = when {
             !settings.monitoring -> Tile.STATE_INACTIVE
             ui.heroRole == StateRole.DOWN -> Tile.STATE_ACTIVE

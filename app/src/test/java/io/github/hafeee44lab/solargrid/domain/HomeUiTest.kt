@@ -48,7 +48,7 @@ class HomeUiTest {
     @Test
     fun healthyGridReadsAsOnline() {
         val ui = buildHomeUi(snap(), running = true, now = now)
-        assertEquals("Grid online", ui.heroState)
+        assertEquals("Mains on", ui.heroState)
         assertEquals(StateRole.UP, ui.heroRole)
         assertTrue(ui.gridLink.live)
         assertFalse(ui.freshAlert)
@@ -57,7 +57,7 @@ class HomeUiTest {
     @Test
     fun outageReadsAsDownAndReversesTheBattery() {
         val ui = buildHomeUi(snap(gridDown = true, battery = 2100.0, volts = 0.0), running = true, now = now)
-        assertEquals("Grid down", ui.heroState)
+        assertEquals("Mains off", ui.heroState)
         assertEquals(StateRole.DOWN, ui.heroRole)
         assertFalse(ui.gridLink.live)
         assertTrue(ui.batteryLink.live)

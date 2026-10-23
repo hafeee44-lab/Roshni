@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
 
 /**
- * A small hand-drawn icon set — one consistent 1.8px rounded stroke — instead of pulling in
+ * A small hand-drawn icon set — one consistent 1.6px rounded stroke — instead of pulling in
  * the multi-megabyte extended Material icon library for a dozen glyphs.
  */
 object Icons {
@@ -26,7 +26,7 @@ object Icons {
             builder.addPath(
                 pathData = addPathNodes(it),
                 stroke = SolidColor(Color.Black),
-                strokeLineWidth = 1.8f,
+                strokeLineWidth = 1.6f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round
             )
@@ -59,7 +59,21 @@ object Icons {
         "M5.3 5.3L6.7 6.7", "M17.3 17.3L18.7 18.7", "M5.3 18.7L6.7 17.3", "M17.3 6.7L18.7 5.3"
     )
     val Battery = icon("battery", "M7.5 5.5H16.5A2 2 0 0 1 18.5 7.5V19A2 2 0 0 1 16.5 21H7.5A2 2 0 0 1 5.5 19V7.5A2 2 0 0 1 7.5 5.5Z", "M10 3H14", "M9 14H15")
-    val Pylon = icon("pylon", "M9 21.5L12 2.5L15 21.5", "M5.5 7H18.5", "M7.5 12H16.5", "M8.6 17H15.4")
+    /** Small sizes (flow nodes, tiles, lists): legs, one cross-arm with insulators, one tie. */
+    val Pylon = icon(
+        "pylon",
+        "M10.5 3H13.5", "M10.5 3L7 21", "M13.5 3L17 21",
+        "M4.5 8H19.5", "M5.5 8V10.5", "M18.5 8V10.5",
+        "M8.4 14H15.6"
+    )
+    /** Large sizes only (the alarm screen): the full lattice tower. */
+    val Tower = icon(
+        "tower",
+        "M10.4 6L12 3L13.6 6", "M10.4 6L7.5 21.5", "M13.6 6L16.5 21.5",
+        "M5 8.5H19", "M6.5 13H17.5",
+        "M5.5 8.5V10.3", "M18.5 8.5V10.3", "M7 13V14.8", "M17 13V14.8",
+        "M10 8.5L14.8 13", "M14 8.5L9.2 13", "M9.2 13L15.8 19", "M14.8 13L8.2 19"
+    )
     val Home = icon("home", "M3.5 11.5L12 4.5L20.5 11.5", "M6 9.6V20H18V9.6", "M10 20V15H14V20")
     val Info = icon("info", "M12 3A9 9 0 1 0 12.01 3Z", "M12 11V16.5", "M12 7.8V8")
     val Moon = icon("moon", "M19.5 14.5A7.8 7.8 0 1 1 9.5 4.5A6.2 6.2 0 0 0 19.5 14.5Z")
@@ -72,5 +86,11 @@ object Icons {
     val Wave = icon("wave", "M2.5 12C4.5 6.5 7 6.5 9 12S13.5 17.5 15.5 12S19.5 8 21.5 10")
     val Account = icon("account", "M12 4A4 4 0 1 0 12.01 4Z", "M4.5 20.5C5.5 16.5 8.5 14.5 12 14.5S18.5 16.5 19.5 20.5")
     val Calendar = icon("calendar", "M5 5.5H19V20H5Z", "M5 10H19", "M9 3.5V7", "M15 3.5V7")
+    val Inverter = icon(
+        "inverter",
+        "M5 3.5H19A1.5 1.5 0 0 1 20.5 5V15.5A1.5 1.5 0 0 1 19 17H5A1.5 1.5 0 0 1 3.5 15.5V5A1.5 1.5 0 0 1 5 3.5Z",
+        "M7 7H13V11H7Z", "M16.5 7.5V7.6", "M16.5 10V10.1",
+        "M8 17V20.5", "M12 17V20.5", "M16 17V20.5"
+    )
     val Sparkle = icon("sparkle", "M12 3L13.8 10.2L21 12L13.8 13.8L12 21L10.2 13.8L3 12L10.2 10.2Z")
 }

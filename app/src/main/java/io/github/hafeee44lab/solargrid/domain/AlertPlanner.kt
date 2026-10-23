@@ -154,7 +154,7 @@ object AlertPlanner {
 
                             alerts += Alert(
                                 kind = AlertKind.OUTAGE,
-                                title = "Grid outage",
+                                title = "Mains off — on battery",
                                 body = "Running on battery at $socText%$runtime.",
                                 ring = settings.alarmOnOutage && !quiet,
                                 relay = "⚠️ *Grid outage*\nMains power is down, running on battery.\n" +
@@ -176,7 +176,7 @@ object AlertPlanner {
                             if (settings.notifyRestored) {
                                 alerts += Alert(
                                     kind = AlertKind.RESTORED,
-                                    title = "Grid restored",
+                                    title = "Mains back on",
                                     body = "Mains are back$lasted. Battery at $socText%.",
                                     relay = "⚡ *Grid restored*\nMains power is back$lasted.\n" +
                                         "Battery: $socText%\n${ctx.formatTime(ctx.now)}"

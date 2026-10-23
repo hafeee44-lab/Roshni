@@ -113,8 +113,8 @@ fun buildHomeUi(
         !snapshot.hasData -> "Starting"
         failed || !fresh -> "Last known"
         silent -> "Not reporting"
-        snapshot.gridDown == true -> "Grid down"
-        snapshot.gridDown == false -> "Grid online"
+        snapshot.gridDown == true -> "Mains off"
+        snapshot.gridDown == false -> "Mains on"
         else -> "Can't tell"
     }
 

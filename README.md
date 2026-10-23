@@ -1,22 +1,22 @@
-<h1 align="center">Solar Grid</h1>
+<h1 align="center">Roshni</h1>
 
-<p align="center"><strong>Know the moment the grid goes down.</strong><br>
+<p align="center"><strong>Know the moment the mains go off.</strong><br>
 An open-source Android app that watches your hybrid solar inverter and rings like an alarm clock when the mains fail, then tells you exactly how long your battery will last.</p>
 
 <p align="center">
-  <img src="docs/screenshots/live.png" width="220" alt="Live screen: grid online, animated power flow">
-  <img src="docs/screenshots/outage.png" width="220" alt="Live screen during an outage with the outage clock">
+  <img src="docs/screenshots/live.png" width="220" alt="Home: mains on, battery and power flow">
+  <img src="docs/screenshots/outage.png" width="220" alt="Home during a cut, with the outage clock">
   <img src="docs/screenshots/alarm.png" width="220" alt="Full-screen outage alarm with slide to stop">
 </p>
 <p align="center">
-  <img src="docs/screenshots/insights.png" width="220" alt="Insights: learned load-shedding schedule and outage map">
+  <img src="docs/screenshots/insights.png" width="220" alt="History: learned load-shedding schedule and outage map">
   <img src="docs/screenshots/settings.png" width="220" alt="Settings: reliability checklist and alarm options">
-  <img src="docs/screenshots/light.png" width="220" alt="Light theme">
+  <img src="docs/screenshots/dark.png" width="220" alt="Dark theme">
 </p>
 
 ---
 
-Built for places where load-shedding is part of the day. Your inverter already switches to the battery when the mains drop; what it doesn't do is tell you. Solar Grid reads the same data your inverter's Wi-Fi logger sends to the Solarman cloud, decides carefully whether the mains are really gone, and wakes you only when it matters.
+Built for places where load-shedding is part of the day. Your inverter already switches to the battery when the mains drop; what it doesn't do is tell you. Roshni (روشنی, "light") reads the same data your inverter's Wi-Fi logger sends to the Solarman cloud, decides carefully whether the mains are really gone, and wakes you only when it matters.
 
 ## Features
 
@@ -50,8 +50,6 @@ Built for places where load-shedding is part of the day. Your inverter already s
 
 <p align="center">
   <img src="docs/screenshots/widget.png" width="180" alt="Home-screen widget">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/live-update.png" width="220" alt="Live Update notification during an outage">
 </p>
 
 ## Does it work with my inverter?
@@ -131,7 +129,7 @@ app/src/main/java/io/github/hafeee44lab/solargrid/
 └── ui/        Compose screens, design system, charts and the power-flow diagram
 ```
 
-Design tokens, type, motion and component rules are in [docs/DESIGN.md](docs/DESIGN.md).
+Product and design intent are in [PRODUCT.md](PRODUCT.md).
 
 ## Contributing
 
@@ -139,6 +137,6 @@ Bug reports with an inverter dump, translations, support for more inverters and 
 
 ## Licence
 
-[MIT](LICENSE). Space Grotesk is © The Space Grotesk Project Authors, under the [SIL Open Font License](licenses/SpaceGrotesk-OFL.txt).
+[MIT](LICENSE).
 
 *Not affiliated with Solarman or any inverter manufacturer.*

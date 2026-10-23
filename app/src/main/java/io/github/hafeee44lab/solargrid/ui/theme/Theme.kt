@@ -15,126 +15,139 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.ThemeMode
 
 /**
- * Energy is colour-coded the same way everywhere — flow diagram, charts, notifications:
- * solar is amber, grid is sky, battery is violet, home is ink. Green means "fine", coral
- * means "the mains are gone". Nothing else gets to use those two.
+ * A quiet, conventional palette in the manner of SOLARMAN Smart: cool grey ground, white
+ * cards, thin lines. Colour only ever means something — solar is amber, the grid is slate,
+ * the battery takes the colour of its own level, and red is spent on outages alone.
  */
 @Immutable
 data class SolarColors(
     val isDark: Boolean,
     val bg: Color,
-    val bgDeep: Color,
     val surface: Color,
-    val surfaceHigh: Color,
-    val hairline: Color,
-    val hairlineStrong: Color,
+    val surfaceVariant: Color,
+    val outline: Color,
+    val outlineStrong: Color,
     val ink: Color,
     val ink2: Color,
     val ink3: Color,
+    val brand: Color,
+    val brandContainer: Color,
+    val onBrand: Color,
     val solar: Color,
-    val solarDeep: Color,
+    val solarText: Color,
     val grid: Color,
-    val battery: Color,
     val home: Color,
     val ok: Color,
+    val okContainer: Color,
     val down: Color,
+    val downContainer: Color,
+    val onDownContainer: Color,
     val warn: Color,
-    val track: Color,
-    val onAccent: Color
+    val batteryHigh: Color,
+    val batteryMid: Color,
+    val batteryLow: Color
+) {
+    /** The battery reads like a phone battery: green, then amber, then red. */
+    fun battery(soc: Double?, lowPercent: Int = 20): Color = when {
+        soc == null -> ink3
+        soc <= lowPercent -> batteryLow
+        soc < 50 -> batteryMid
+        else -> batteryHigh
+    }
+}
+
+private val Light = SolarColors(
+    isDark = false,
+    bg = Color(0xFFF2F4F7),
+    surface = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFFEDF0F4),
+    outline = Color(0xFFE3E7ED),
+    outlineStrong = Color(0xFFC9CFD8),
+    ink = Color(0xFF16191F),
+    ink2 = Color(0xFF4F5663),
+    ink3 = Color(0xFF6A7180),
+    brand = Color(0xFF2457C5),
+    brandContainer = Color(0xFFE3EBFB),
+    onBrand = Color(0xFFFFFFFF),
+    solar = Color(0xFFF2A007),
+    solarText = Color(0xFF9A5B00),
+    grid = Color(0xFF5F6E86),
+    home = Color(0xFF2457C5),
+    ok = Color(0xFF1B8A4E),
+    okContainer = Color(0xFFE2F4E9),
+    down = Color(0xFFC62828),
+    downContainer = Color(0xFFFCEBEA),
+    onDownContainer = Color(0xFF7A1212),
+    warn = Color(0xFF8F5A00),
+    batteryHigh = Color(0xFF1B8A4E),
+    batteryMid = Color(0xFFB7791F),
+    batteryLow = Color(0xFFC62828)
 )
 
 private val Dark = SolarColors(
     isDark = true,
-    bg = Color(0xFF070A10),
-    bgDeep = Color(0xFF04060A),
-    surface = Color(0xFF0F141D),
-    surfaceHigh = Color(0xFF161D29),
-    hairline = Color(0x14FFFFFF),
-    hairlineStrong = Color(0x26FFFFFF),
-    ink = Color(0xFFEEF2F8),
-    ink2 = Color(0xFFA6B0C0),
-    ink3 = Color(0xFF8590A2),
-    solar = Color(0xFFFFB23F),
-    solarDeep = Color(0xFFFF7A2F),
-    grid = Color(0xFF4CC9FF),
-    battery = Color(0xFF9B8CFF),
-    home = Color(0xFFEEF2F8),
-    ok = Color(0xFF2BD99F),
-    down = Color(0xFFFF4D6A),
-    warn = Color(0xFFFFC547),
-    track = Color(0x1AFFFFFF),
-    onAccent = Color(0xFF06080C)
+    bg = Color(0xFF111318),
+    surface = Color(0xFF1B1F26),
+    surfaceVariant = Color(0xFF262B34),
+    outline = Color(0xFF2C313B),
+    outlineStrong = Color(0xFF3B414D),
+    ink = Color(0xFFE7E9EE),
+    ink2 = Color(0xFFB4BAC5),
+    ink3 = Color(0xFF959CA9),
+    brand = Color(0xFF9DB9F5),
+    brandContainer = Color(0xFF233457),
+    onBrand = Color(0xFF0B1A38),
+    solar = Color(0xFFF5B847),
+    solarText = Color(0xFFF5B847),
+    grid = Color(0xFF9AA8BF),
+    home = Color(0xFF9DB9F5),
+    ok = Color(0xFF5CC98C),
+    okContainer = Color(0xFF1C3326),
+    down = Color(0xFFF2726A),
+    downContainer = Color(0xFF3A1D1D),
+    onDownContainer = Color(0xFFFFD9D6),
+    warn = Color(0xFFE6B45C),
+    batteryHigh = Color(0xFF5CC98C),
+    batteryMid = Color(0xFFE6B45C),
+    batteryLow = Color(0xFFF2726A)
 )
 
-private val Light = SolarColors(
-    isDark = false,
-    bg = Color(0xFFF5F2ED),
-    bgDeep = Color(0xFFECE7E0),
-    surface = Color(0xFFFFFFFF),
-    surfaceHigh = Color(0xFFF7F5F2),
-    hairline = Color(0x12000000),
-    hairlineStrong = Color(0x24000000),
-    ink = Color(0xFF12161D),
-    ink2 = Color(0xFF4A5262),
-    ink3 = Color(0xFF626A79),
-    solar = Color(0xFFA86400),
-    solarDeep = Color(0xFFC2410C),
-    grid = Color(0xFF0675AD),
-    battery = Color(0xFF6A55F2),
-    home = Color(0xFF12161D),
-    ok = Color(0xFF08875D),
-    down = Color(0xFFD9203F),
-    warn = Color(0xFF93600F),
-    track = Color(0x14000000),
-    onAccent = Color(0xFFFFFFFF)
-)
-
-val LocalSolarColors = staticCompositionLocalOf { Dark }
+val LocalSolarColors = staticCompositionLocalOf { Light }
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
 object Solar {
     val colors: SolarColors
         @Composable @ReadOnlyComposable get() = LocalSolarColors.current
 
-    /** Honour "Remove animations": everything decorative stops, state changes still crossfade. */
+    /** Honour "Remove animations": decorative motion stops, state changes still crossfade. */
     val reduceMotion: Boolean
         @Composable @ReadOnlyComposable get() = LocalReduceMotion.current
 }
 
-private fun grotesk(weight: Int) = Font(
-    R.font.space_grotesk,
-    weight = FontWeight(weight),
-    variationSettings = FontVariation.Settings(FontVariation.weight(weight))
-)
-
-val Grotesk = FontFamily(
-    grotesk(300),
-    grotesk(400),
-    grotesk(500),
-    grotesk(600),
-    grotesk(700)
-)
-
-/** Type scale. Numbers use tabular figures so a ticking value never jitters sideways. */
+/**
+ * The Material type scale in Roboto. Figures are regular weight with tabular digits, set
+ * beside a smaller grey unit — the way SOLARMAN and every good meter writes "10.6 kWh".
+ */
 object SolarType {
-    val display = TextStyle(fontFamily = Grotesk, fontWeight = FontWeight.SemiBold, fontSize = 40.sp, lineHeight = 44.sp, letterSpacing = (-1.2).sp)
-    val hero = TextStyle(fontFamily = Grotesk, fontWeight = FontWeight.SemiBold, fontSize = 34.sp, lineHeight = 38.sp, letterSpacing = (-0.9).sp)
-    val title = TextStyle(fontFamily = Grotesk, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 26.sp, letterSpacing = (-0.3).sp)
-    val number = TextStyle(fontFamily = Grotesk, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 30.sp, letterSpacing = (-0.6).sp, fontFeatureSettings = "tnum")
-    val numberSmall = TextStyle(fontFamily = Grotesk, fontWeight = FontWeight.Medium, fontSize = 15.sp, lineHeight = 20.sp, fontFeatureSettings = "tnum")
-    val label = TextStyle(fontFamily = Grotesk, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 1.1.sp)
-    val body = TextStyle(fontSize = 14.sp, lineHeight = 20.sp)
-    val bodyStrong = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold)
-    val caption = TextStyle(fontSize = 12.sp, lineHeight = 16.sp)
+    private val tnum = "tnum"
+
+    val figureXL = TextStyle(fontWeight = FontWeight.Normal, fontSize = 57.sp, lineHeight = 60.sp, letterSpacing = (-0.5).sp, fontFeatureSettings = tnum)
+    val figureL = TextStyle(fontWeight = FontWeight.Normal, fontSize = 32.sp, lineHeight = 38.sp, fontFeatureSettings = tnum)
+    val figure = TextStyle(fontWeight = FontWeight.Normal, fontSize = 24.sp, lineHeight = 30.sp, fontFeatureSettings = tnum)
+    val figureS = TextStyle(fontWeight = FontWeight.Medium, fontSize = 16.sp, lineHeight = 22.sp, fontFeatureSettings = tnum)
+    val unit = TextStyle(fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 18.sp)
+
+    val headline = TextStyle(fontWeight = FontWeight.Normal, fontSize = 28.sp, lineHeight = 36.sp)
+    val title = TextStyle(fontWeight = FontWeight.Medium, fontSize = 20.sp, lineHeight = 26.sp)
+    val cardTitle = TextStyle(fontWeight = FontWeight.Medium, fontSize = 16.sp, lineHeight = 22.sp)
+    val body = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp)
+    val bodyStrong = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.1.sp)
+    val caption = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.2.sp)
 }
 
 @Composable
@@ -144,61 +157,48 @@ fun SolarTheme(mode: ThemeMode = ThemeMode.SYSTEM, content: @Composable () -> Un
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    val colors = if (dark) Dark else Light
+    val c = if (dark) Dark else Light
 
     val context = LocalContext.current
     val reduceMotion = remember(context) {
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     }
 
-    val scheme = if (dark) {
+    val roles = if (dark) {
         darkColorScheme(
-            primary = colors.ok,
-            onPrimary = colors.onAccent,
-            secondary = colors.battery,
-            background = colors.bg,
-            surface = colors.surface,
-            surfaceContainer = colors.surfaceHigh,
-            surfaceContainerHigh = colors.surfaceHigh,
-            surfaceContainerHighest = colors.surfaceHigh,
-            onBackground = colors.ink,
-            onSurface = colors.ink,
-            onSurfaceVariant = colors.ink2,
-            outline = colors.hairlineStrong,
-            outlineVariant = colors.hairline,
-            error = colors.down
+            primary = c.brand, onPrimary = c.onBrand, primaryContainer = c.brandContainer, onPrimaryContainer = c.ink,
+            secondaryContainer = c.brandContainer, onSecondaryContainer = c.ink,
+            background = c.bg, onBackground = c.ink,
+            surface = c.surface, onSurface = c.ink, onSurfaceVariant = c.ink2,
+            surfaceContainerLowest = c.bg, surfaceContainerLow = c.surface, surfaceContainer = c.surface,
+            surfaceContainerHigh = c.surfaceVariant, surfaceContainerHighest = c.surfaceVariant,
+            outline = c.outlineStrong, outlineVariant = c.outline,
+            error = c.down, errorContainer = c.downContainer, onErrorContainer = c.onDownContainer
         )
     } else {
         lightColorScheme(
-            primary = colors.ok,
-            onPrimary = colors.onAccent,
-            secondary = colors.battery,
-            background = colors.bg,
-            surface = colors.surface,
-            surfaceContainer = colors.surfaceHigh,
-            surfaceContainerHigh = colors.surfaceHigh,
-            surfaceContainerHighest = colors.surfaceHigh,
-            onBackground = colors.ink,
-            onSurface = colors.ink,
-            onSurfaceVariant = colors.ink2,
-            outline = colors.hairlineStrong,
-            outlineVariant = colors.hairline,
-            error = colors.down
+            primary = c.brand, onPrimary = c.onBrand, primaryContainer = c.brandContainer, onPrimaryContainer = c.ink,
+            secondaryContainer = c.brandContainer, onSecondaryContainer = c.ink,
+            background = c.bg, onBackground = c.ink,
+            surface = c.surface, onSurface = c.ink, onSurfaceVariant = c.ink2,
+            surfaceContainerLowest = c.surface, surfaceContainerLow = c.surface, surfaceContainer = c.surface,
+            surfaceContainerHigh = c.surfaceVariant, surfaceContainerHighest = c.surfaceVariant,
+            outline = c.outlineStrong, outlineVariant = c.outline,
+            error = c.down, errorContainer = c.downContainer, onErrorContainer = c.onDownContainer
         )
     }
 
-    CompositionLocalProvider(
-        LocalSolarColors provides colors,
-        LocalReduceMotion provides reduceMotion
-    ) {
+    CompositionLocalProvider(LocalSolarColors provides c, LocalReduceMotion provides reduceMotion) {
         MaterialTheme(
-            colorScheme = scheme,
-            typography = Typography(
-                bodyLarge = SolarType.body.copy(fontSize = 15.sp),
-                bodyMedium = SolarType.body,
-                labelLarge = SolarType.bodyStrong,
-                titleLarge = SolarType.title
-            ),
+            colorScheme = roles,
+            typography = Typography().let {
+                it.copy(
+                    titleLarge = SolarType.title,
+                    titleMedium = SolarType.cardTitle,
+                    bodyMedium = SolarType.body,
+                    labelLarge = SolarType.bodyStrong
+                )
+            },
             content = content
         )
     }

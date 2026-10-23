@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Static picture of the widget for the launcher's widget picker. The live widget is Glance. -->
+<!-- Static picture of the widget for the launcher's picker. The live widget is Glance. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,23 +10,21 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:drawableStart="@drawable/ic_stat_bolt"
+        android:drawableStart="@drawable/ic_stat_home"
         android:drawablePadding="6dp"
-        android:drawableTint="#2BD99F"
+        android:drawableTint="#1B8A4E"
         android:gravity="center_vertical"
-        android:text="Grid online"
-        android:textColor="#2BD99F"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:text="Mains on"
+        android:textColor="#16191F"
+        android:textSize="14sp" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="78%"
-        android:textColor="#EEF2F8"
-        android:textSize="32sp"
-        android:textStyle="bold" />
+        android:textColor="#16191F"
+        android:textSize="32sp" />
 
     <ProgressBar
         style="@android:style/Widget.ProgressBar.Horizontal"
@@ -35,14 +33,14 @@
         android:layout_marginTop="6dp"
         android:max="100"
         android:progress="78"
-        android:progressTint="#9B8CFF"
-        android:progressBackgroundTint="#33FFFFFF" />
+        android:progressBackgroundTint="#EDF0F4"
+        android:progressTint="#1B8A4E" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:text="3h 40m backup"
-        android:textColor="#8C97A8"
+        android:textColor="#6A7180"
         android:textSize="11sp" />
 </LinearLayout>
