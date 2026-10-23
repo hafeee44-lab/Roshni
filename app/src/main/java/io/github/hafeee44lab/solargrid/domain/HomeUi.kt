@@ -72,19 +72,19 @@ data class HomeUi(
 
 private const val FLOW_THRESHOLD_W = 50.0
 
-private fun phaseNote(volts: List<Double>): String? {
+private fun phaseNote(volts: List<Double>, p: Phrases): String? {
     if (volts.size < 2) return null
 
     val live = volts.count { it >= PHASE_LIVE_MIN_V }
 
     return when (live) {
-        0 -> "All phases dead"
+        0 -> p.allPhasesDead()
         volts.size -> null
         else -> {
             val missing = volts.mapIndexedNotNull { i, v ->
                 if (v < PHASE_LIVE_MIN_V) "L${i + 1}" else null
             }
-            "${missing.joinToString(" and ")} missing — partial supply"
+            p.phasesMissing(missing)
         }
     }
 }
@@ -95,8 +95,10 @@ fun kw(watts: Double?): String =
 fun buildHomeUi(
     snapshot: SolarSnapshot,
     running: Boolean,
-    now: Long = System.currentTimeMillis()
+    now: Long = System.currentTimeMillis(),
+    p: Phrases = Phrases.English
 ): HomeUi {
+    fun age(ms: Long) = describeAge(ms, p)
     val fresh = snapshot.isFresh(now)
     val failed = snapshot.error != null
     val silent = snapshot.inverterIsSilent(now)
@@ -110,12 +112,12 @@ fun buildHomeUi(
     }
 
     val hero = when {
-        !snapshot.hasData -> "Starting"
-        failed || !fresh -> "Last known"
-        silent -> "Not reporting"
-        snapshot.gridDown == true -> "Mains off"
-        snapshot.gridDown == false -> "Mains on"
-        else -> "Can't tell"
+        !snapshot.hasData -> p.starting()
+        failed || !fresh -> p.lastKnown()
+        silent -> p.notReporting()
+        snapshot.gridDown == true -> p.mainsOff()
+        snapshot.gridDown == false -> p.mainsOn()
+        else -> p.cantTell()
     }
 
     val battery = snapshot.batteryPowerW
@@ -124,16 +126,16 @@ fun buildHomeUi(
     val inverterAge = snapshot.inverterAgeMillis(now)
 
     val sub = when {
-        !snapshot.hasData -> "Waiting for the first reading"
-        failed -> snapshot.error ?: "Last check failed"
-        !fresh -> "Not confirmed since ${describeAge(snapshot.ageMillis(now))}"
-        silent && snapshot.gridDown == true -> "No data since ${describeAge(inverterAge)} — the battery may have run out"
-        silent -> "No data since ${describeAge(inverterAge)} — mains may be down if the router isn't on backup"
-        snapshot.gridDown == true -> "Running on battery backup"
-        snapshot.gridDown == false && charging -> "Battery charging"
-        snapshot.gridDown == false && discharging -> "House running off the battery"
-        snapshot.gridDown == false -> "Battery on standby"
-        else -> "No grid metric in this inverter's response"
+        !snapshot.hasData -> p.waitingForFirstReading()
+        failed -> snapshot.error ?: p.lastCheckFailed()
+        !fresh -> p.notConfirmedSince(age(snapshot.ageMillis(now)))
+        silent && snapshot.gridDown == true -> p.silentWhileDown(age(inverterAge))
+        silent -> p.silentWhileUp(age(inverterAge))
+        snapshot.gridDown == true -> p.runningOnBackup()
+        snapshot.gridDown == false && charging -> p.batteryCharging()
+        snapshot.gridDown == false && discharging -> p.houseOnBattery()
+        snapshot.gridDown == false -> p.batteryStandby()
+        else -> p.noGridMetric()
     }
 
     val runtimeMinutes = snapshot.runtimeMinutes?.takeIf { trusted && it > 0 }
@@ -149,15 +151,15 @@ fun buildHomeUi(
         outageSince = snapshot.outageSince.takeIf { trusted && snapshot.gridDown == true && it > 0L },
         socText = snapshot.soc?.let { String.format(Locale.US, "%.0f", it) } ?: "—",
         soc = snapshot.soc,
-        runtime = runtimeMinutes?.let { RuntimeEstimator.describe(it) },
+        runtime = runtimeMinutes?.let { RuntimeEstimator.describe(it, p) },
         runtimeNote = when {
             !trusted -> "—"
-            snapshot.runtimeMinutes == null -> "load too low to estimate"
-            snapshot.runtimeCalibrated -> "at the current load"
-            else -> "estimated from the rated capacity"
+            snapshot.runtimeMinutes == null -> p.loadTooLowToEstimate()
+            snapshot.runtimeCalibrated -> p.atCurrentLoad()
+            else -> p.fromRatedCapacity()
         },
         emptyAt = runtimeMinutes?.takeIf { discharging }?.let { now + it * 60_000L },
-        fullIn = fullMinutes?.let { RuntimeEstimator.describe(it) },
+        fullIn = fullMinutes?.let { RuntimeEstimator.describe(it, p) },
         fullAt = fullMinutes?.let { now + it * 60_000L },
         socFraction = ((snapshot.soc ?: 0.0) / 100.0).toFloat().coerceIn(0f, 1f),
         batteryMode = when {
@@ -169,10 +171,10 @@ fun buildHomeUi(
         voltText = snapshot.gridVoltage?.let { String.format(Locale.US, "%.0f", it) } ?: "—",
         voltUnit = if (snapshot.gridVoltage != null) "V" else "",
         voltNote = when {
-            snapshot.gridVoltage == null -> "Not reported by this inverter"
-            !fresh -> "Reading is ${describeAge(snapshot.ageMillis(now))}"
-            snapshot.gridVoltage < GridAnalyzer.GRID_VOLTAGE_MIN -> "No mains detected"
-            else -> "Within normal range"
+            snapshot.gridVoltage == null -> p.voltageNotReported()
+            !fresh -> p.readingIs(age(snapshot.ageMillis(now)))
+            snapshot.gridVoltage < GridAnalyzer.GRID_VOLTAGE_MIN -> p.noMainsDetected()
+            else -> p.withinNormalRange()
         },
         frequencyText = snapshot.gridFrequency?.let { String.format(Locale.US, "%.2f Hz", it) },
         phases = snapshot.gridPhaseVolts.mapIndexed { index, volts ->
@@ -182,38 +184,38 @@ fun buildHomeUi(
                 live = volts >= PHASE_LIVE_MIN_V
             )
         },
-        phaseNote = phaseNote(snapshot.gridPhaseVolts),
+        phaseNote = phaseNote(snapshot.gridPhaseVolts, p),
         inverterTemp = snapshot.inverterTempC?.let { String.format(Locale.US, "%.0f°C", it) },
         inverterTempHot = (snapshot.inverterTempC ?: 0.0) >= INVERTER_HOT_C,
         batteryTemp = snapshot.batteryTempC?.let { String.format(Locale.US, "%.0f°C", it) },
         basis = snapshot.basis.ifBlank { "—" },
         batteryFlow = when {
-            battery == null -> "unknown"
-            discharging -> "${kw(battery)} · discharging"
-            charging -> "${kw(abs(battery))} · charging"
-            else -> "idle"
+            battery == null -> p.unknown()
+            discharging -> p.discharging(kw(battery))
+            charging -> p.charging(kw(abs(battery)))
+            else -> p.idle()
         },
         houseLoad = if (trusted) kw(snapshot.loadPowerW) else "—",
         freshPrimary = when {
-            !snapshot.hasData -> "Not checked yet"
-            failed -> "Last check failed ${describeAge(snapshot.ageMillis(now))}"
-            else -> "Checked ${describeAge(snapshot.ageMillis(now))}"
+            !snapshot.hasData -> p.notCheckedYet()
+            failed -> p.checkFailedAgo(age(snapshot.ageMillis(now)))
+            else -> p.checkedAgo(age(snapshot.ageMillis(now)))
         },
         freshSecondary = when {
-            !snapshot.hasData -> "The first reading is on its way"
-            failed -> "Backing off until it recovers"
-            inverterAge < 0L -> "No upload time reported"
-            snapshot.inverterIsStale(now) -> "Inverter last reported ${describeAge(inverterAge)}"
-            else -> "Inverter reported ${describeAge(inverterAge)}"
+            !snapshot.hasData -> p.firstReadingOnItsWay()
+            failed -> p.backingOff()
+            inverterAge < 0L -> p.noUploadTime()
+            snapshot.inverterIsStale(now) -> p.inverterLastReported(age(inverterAge))
+            else -> p.inverterReported(age(inverterAge))
         },
         freshAlert = snapshot.hasData && (failed || !fresh || snapshot.inverterIsStale(now)),
         gridLabel = if (trusted) kw(grid?.let { abs(it) }) else "—",
         solarLabel = if (trusted) kw(solar) else "—",
         batteryLabel = when {
             !trusted || battery == null -> "—"
-            discharging -> "${kw(battery)} out"
-            charging -> "${kw(abs(battery))} in"
-            else -> "idle"
+            discharging -> p.batteryOut(kw(battery))
+            charging -> p.batteryIn(kw(abs(battery)))
+            else -> p.idle()
         },
         loadLabel = if (trusted) kw(snapshot.loadPowerW) else "—",
         gridLink = FlowSpec(

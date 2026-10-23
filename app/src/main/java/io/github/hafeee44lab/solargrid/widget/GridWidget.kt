@@ -12,20 +12,20 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
+import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.SizeMode
-import androidx.glance.action.actionStartActivity
 import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
 import androidx.glance.background
 import androidx.glance.color.ColorProvider
-import androidx.glance.unit.ColorProvider as GlanceColor
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
@@ -39,20 +39,22 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider as GlanceColor
 import io.github.hafeee44lab.solargrid.MainActivity
 import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.AppGraph
 import io.github.hafeee44lab.solargrid.data.changes
+import io.github.hafeee44lab.solargrid.data.phrases
 import io.github.hafeee44lab.solargrid.domain.HomeUi
 import io.github.hafeee44lab.solargrid.domain.StateRole
 import io.github.hafeee44lab.solargrid.domain.buildHomeUi
 import io.github.hafeee44lab.solargrid.domain.kw
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
@@ -67,14 +69,14 @@ class GridWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val graph = AppGraph.get(context)
         val settings = graph.settings.load()
-        val initial = buildHomeUi(graph.state(settings.profile).snapshot, settings.monitoring)
+        val initial = buildHomeUi(graph.state(settings.profile).snapshot, settings.monitoring, p = context.phrases())
 
         // Glance keeps a session alive between updates, so the reading has to be observed, not
         // read once: otherwise every refresh in that window redraws the first snapshot.
         val readings = graph.settings.prefs.changes()
             .map { graph.settings.load() }
             .flatMapLatest { s ->
-                graph.state(s.profile).prefs.changes().map { buildHomeUi(graph.state(s.profile).snapshot, s.monitoring) }
+                graph.state(s.profile).prefs.changes().map { buildHomeUi(graph.state(s.profile).snapshot, s.monitoring, p = context.phrases()) }
             }
 
         provideContent {
@@ -132,7 +134,7 @@ class GridWidget : GlanceAppWidget() {
                 if (size.width >= WIDE.width) {
                     Spacer(GlanceModifier.defaultWeight())
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(runtimeLine(ui), style = TextStyle(color = ink, fontSize = 13.sp), maxLines = 1)
+                        Text(runtimeLine(LocalContext.current, ui), style = TextStyle(color = ink, fontSize = 13.sp), maxLines = 1)
                         Text(ui.freshPrimary, style = TextStyle(color = muted, fontSize = 11.sp), maxLines = 1)
                     }
                 }
@@ -148,16 +150,17 @@ class GridWidget : GlanceAppWidget() {
 
             if (size.width < WIDE.width) {
                 Spacer(GlanceModifier.height(6.dp))
-                Text(runtimeLine(ui), style = TextStyle(color = muted, fontSize = 11.sp), maxLines = 1)
+                Text(runtimeLine(LocalContext.current, ui), style = TextStyle(color = muted, fontSize = 11.sp), maxLines = 1)
             }
 
             if (size.height >= TALL.height) {
                 Spacer(GlanceModifier.height(12.dp))
                 Row(modifier = GlanceModifier.fillMaxWidth()) {
-                    Metric("Solar", if (ui.trusted) kw(ui.powers.solarW) else "—", ink, muted, GlanceModifier.defaultWeight())
-                    Metric("Home", ui.loadLabel, ink, muted, GlanceModifier.defaultWeight())
+                    val context = LocalContext.current
+                    Metric(context.getString(R.string.solar), if (ui.trusted) kw(ui.powers.solarW) else "—", ink, muted, GlanceModifier.defaultWeight())
+                    Metric(context.getString(R.string.home), ui.loadLabel, ink, muted, GlanceModifier.defaultWeight())
                     if (size.width >= WIDE.width) {
-                        Metric(if (down) "Off since" else "Grid", if (down) sinceLabel(ui) else ui.gridLabel, ink, muted, GlanceModifier.defaultWeight())
+                        Metric(context.getString(if (down) R.string.off_since else R.string.grid), if (down) sinceLabel(ui) else ui.gridLabel, ink, muted, GlanceModifier.defaultWeight())
                     }
                 }
             }
@@ -173,10 +176,10 @@ class GridWidget : GlanceAppWidget() {
     }
 
     /** "left" only while the battery is actually carrying the house; otherwise it is backup time. */
-    private fun runtimeLine(ui: HomeUi): String = when {
-        ui.runtime != null && ui.heroRole == StateRole.DOWN -> "${ui.runtime} left"
-        ui.fullIn != null -> "full in ${ui.fullIn}"
-        ui.runtime != null -> "${ui.runtime} backup"
+    private fun runtimeLine(context: Context, ui: HomeUi): String = when {
+        ui.runtime != null && ui.heroRole == StateRole.DOWN -> context.getString(R.string.widget_left, ui.runtime)
+        ui.fullIn != null -> context.getString(R.string.widget_full_in, ui.fullIn)
+        ui.runtime != null -> context.getString(R.string.widget_backup, ui.runtime)
         else -> ui.freshPrimary
     }
 

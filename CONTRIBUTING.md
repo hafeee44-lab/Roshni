@@ -28,6 +28,16 @@ Demo mode (on the welcome screen, or in **Settings → Data source**) runs the f
 - Match the surrounding style: small functions, comments that explain *why*, and no dead code.
 - Never commit credentials. `local.properties` is gitignored for exactly that reason.
 
+## Translations
+
+Roshni ships in English and Urdu. To add a language:
+
+1. Copy `app/src/main/res/values/strings.xml` to `values-<code>/strings.xml` and translate every entry. Keep the `%1$s`-style placeholders.
+2. Add a `Phrases` object for the language in `domain/Phrases.kt` (the live status, alerts and durations, which are built in plain Kotlin so the tests can run them) and pick it in `Phrases.of`.
+3. Add the locale to `res/xml/locales_config.xml` so Android 13+ offers it in the per-app language picker.
+
+Numbers stay in Western digits, and charts and the power-flow diagram stay left to right in every language.
+
 ## Releasing
 
 Releases are built and signed by GitHub Actions when a version tag is pushed.

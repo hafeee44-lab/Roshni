@@ -1,5 +1,7 @@
 package io.github.hafeee44lab.solargrid.ui.components
 
+import androidx.compose.ui.platform.LocalResources
+import android.content.res.Resources
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -48,18 +51,24 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.DayEnergy
 import io.github.hafeee44lab.solargrid.data.Sample
 import io.github.hafeee44lab.solargrid.domain.HeatmapDay
 import io.github.hafeee44lab.solargrid.domain.OutageLog
 import io.github.hafeee44lab.solargrid.domain.OutageRecord
 import io.github.hafeee44lab.solargrid.domain.OutageSlot
+import io.github.hafeee44lab.solargrid.domain.Phrases
 import io.github.hafeee44lab.solargrid.ui.theme.Solar
 import io.github.hafeee44lab.solargrid.ui.theme.SolarType
 import java.text.SimpleDateFormat
@@ -89,6 +98,8 @@ fun DayChart(
     modifier: Modifier = Modifier,
     height: Dp = 180.dp
 ) {
+    // Time and power flow read left to right in every language, including Urdu.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
     val c = Solar.colors
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
@@ -104,7 +115,7 @@ fun DayChart(
     val ceilingKw = ceil(peak / 1000.0)
     val ceiling = ceilingKw * 1000.0
     val span = (to - from).coerceAtLeast(1L).toDouble()
-    val time = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val time = rememberDateFormat("HH:mm")
     val batteryColor = c.batteryHigh
 
     BoxWithConstraints(modifier.fillMaxWidth()) {
@@ -123,14 +134,13 @@ fun DayChart(
         }
 
         val shown = scrub?.let { samples.getOrNull(nearest(it)) } ?: samples.lastOrNull()
-        val summary = "Day chart from ${time.format(Date(from))}. " +
-            "${outages.count { (it.endedAt ?: now) > from && it.startedAt < to }} outages hatched."
+        val summary = stringResource(R.string.day_chart_a11y, time.format(Date(from)), outages.count { (it.endedAt ?: now) > from && it.startedAt < to })
 
         Column(Modifier.semantics { contentDescription = summary }) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                LegendValue("Solar", shown?.solarW?.let { "%.2f kW".format(it / 1000) } ?: "—", c.solar)
-                LegendValue("Home", shown?.loadW?.let { "%.2f kW".format(it / 1000) } ?: "—", c.home)
-                LegendValue("Battery", shown?.soc?.let { "%.0f%%".format(it) } ?: "—", batteryColor)
+                LegendValue(stringResource(R.string.solar), shown?.solarW?.let { "%.2f kW".format(Locale.US, it / 1000) } ?: "—", c.solar)
+                LegendValue(stringResource(R.string.home), shown?.loadW?.let { "%.2f kW".format(Locale.US, it / 1000) } ?: "—", c.home)
+                LegendValue(stringResource(R.string.battery), shown?.soc?.let { "%.0f%%".format(Locale.US, it) } ?: "—", batteryColor)
             }
             Spacer(Modifier.height(12.dp))
             Box(Modifier.fillMaxWidth().height(height)) {
@@ -249,6 +259,7 @@ fun DayChart(
         }
     }
 }
+}
 
 /** Outage bands are hatched, not just tinted, so they read without colour. */
 private fun DrawScope.hatch(left: Float, right: Float, top: Float, bottom: Float, color: Color) {
@@ -293,11 +304,14 @@ fun Legend(label: String, color: Color) {
  */
 @Composable
 fun OutageHeatmap(days: List<HeatmapDay>, modifier: Modifier = Modifier, onPick: (HeatmapDay, Int) -> Unit = { _, _ -> }) {
+    // Time and power flow read left to right in every language, including Urdu.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
     val c = Solar.colors
     val haptics = LocalHapticFeedback.current
-    val dayFormat = remember { SimpleDateFormat("EEE d", Locale.getDefault()) }
+    val dayFormat = rememberDateFormat("EEE d")
     val labelW = 48.dp
     var picked by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    val res = LocalResources.current
 
     Column(modifier) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -305,7 +319,7 @@ fun OutageHeatmap(days: List<HeatmapDay>, modifier: Modifier = Modifier, onPick:
             Row {
                 Column(Modifier.width(labelW)) {
                     days.forEach { day ->
-                        Box(Modifier.height(rowH).semantics { contentDescription = "${dayFormat.format(Date(day.dayStart))}: ${spokenCuts(day)}" }, contentAlignment = Alignment.CenterStart) {
+                        Box(Modifier.height(rowH).semantics { contentDescription = "${dayFormat.format(Date(day.dayStart))}: ${spokenCuts(day, res)}" }, contentAlignment = Alignment.CenterStart) {
                             Text(dayFormat.format(Date(day.dayStart)), style = SolarType.caption.copy(fontSize = SolarType.caption.fontSize * 0.9f), color = c.ink3, maxLines = 1)
                         }
                     }
@@ -359,9 +373,10 @@ fun OutageHeatmap(days: List<HeatmapDay>, modifier: Modifier = Modifier, onPick:
         }
     }
 }
+}
 
 /** "off 07:00–09:00, 20:00–22:00" from a day's hour cells, for TalkBack. */
-private fun spokenCuts(day: HeatmapDay): String {
+private fun spokenCuts(day: HeatmapDay, res: Resources): String {
     val spans = mutableListOf<IntRange>()
     var start = -1
     for (h in 0..24) {
@@ -369,8 +384,11 @@ private fun spokenCuts(day: HeatmapDay): String {
         if (off && start < 0) start = h
         if (!off && start >= 0) { spans += start until h; start = -1 }
     }
-    if (spans.isEmpty()) return "mains on all day"
-    return "off " + spans.joinToString(", ") { "%02d:00 to %02d:00".format(it.first, it.last + 1) }
+    if (spans.isEmpty()) return res.getString(R.string.mains_on_all_day)
+    return res.getString(
+        R.string.off_spans,
+        spans.joinToString(", ") { res.getString(R.string.span_to, "%02d:00".format(Locale.US, it.first), "%02d:00".format(Locale.US, it.last + 1)) }
+    )
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -380,6 +398,8 @@ private fun spokenCuts(day: HeatmapDay): String {
 /** Solar made against energy used, one pair of bars per day. Tap a day to read it. */
 @Composable
 fun EnergyBars(days: List<DayEnergy>, modifier: Modifier = Modifier, height: Dp = 140.dp, onPick: (DayEnergy?) -> Unit = {}) {
+    // Time and power flow read left to right in every language, including Urdu.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
     val c = Solar.colors
     val still = Solar.reduceMotion
     val grow = remember(days.size) { Animatable(if (still) 1f else 0f) }
@@ -417,6 +437,7 @@ fun EnergyBars(days: List<DayEnergy>, modifier: Modifier = Modifier, height: Dp 
         }
     }
 }
+}
 
 // ---------------------------------------------------------------------------------------------
 // Learned schedule
@@ -425,6 +446,8 @@ fun EnergyBars(days: List<DayEnergy>, modifier: Modifier = Modifier, height: Dp 
 /** The day as one bar with the learned outage slots on it and a tick for now. */
 @Composable
 fun ScheduleRibbon(slots: List<OutageSlot>, nowMinute: Int, nextMinute: Int?, modifier: Modifier = Modifier) {
+    // Time and power flow read left to right in every language, including Urdu.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
     val c = Solar.colors
     Column(modifier) {
         Canvas(Modifier.fillMaxWidth().height(22.dp)) {
@@ -449,7 +472,8 @@ fun ScheduleRibbon(slots: List<OutageSlot>, nowMinute: Int, nextMinute: Int?, mo
         }
     }
 }
+}
 
-fun minuteLabel(minute: Int): String = "%02d:%02d".format(minute / 60, minute % 60)
+fun minuteLabel(minute: Int): String = "%02d:%02d".format(Locale.US, minute / 60, minute % 60)
 
-fun durationLabel(ms: Long?): String = ms?.let { OutageLog.describeDuration(it) } ?: "—"
+fun durationLabel(ms: Long?, p: Phrases = Phrases.English): String = ms?.let { OutageLog.describeDuration(it, p) } ?: "—"

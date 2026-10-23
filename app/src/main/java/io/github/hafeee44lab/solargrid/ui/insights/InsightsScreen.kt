@@ -1,5 +1,8 @@
 package io.github.hafeee44lab.solargrid.ui.insights
 
+import androidx.compose.ui.platform.LocalResources
+import io.github.hafeee44lab.solargrid.ui.components.rememberDateFormat
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -37,10 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.DayEnergy
 import io.github.hafeee44lab.solargrid.data.Sample
 import io.github.hafeee44lab.solargrid.domain.EventKind
@@ -65,6 +71,7 @@ import io.github.hafeee44lab.solargrid.ui.components.Segmented
 import io.github.hafeee44lab.solargrid.ui.components.durationLabel
 import io.github.hafeee44lab.solargrid.ui.components.minuteLabel
 import io.github.hafeee44lab.solargrid.ui.components.nb
+import io.github.hafeee44lab.solargrid.ui.components.phrases
 import io.github.hafeee44lab.solargrid.ui.screenPadding
 import io.github.hafeee44lab.solargrid.ui.theme.Solar
 import io.github.hafeee44lab.solargrid.ui.theme.SolarType
@@ -73,7 +80,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class Range(val label: String, val days: Int) { DAY("Today", 1), WEEK("Week", 7), MONTH("Month", 30) }
+enum class Range(@StringRes val label: Int, val days: Int) { DAY(R.string.today, 1), WEEK(R.string.week, 7), MONTH(R.string.month, 30) }
 
 @Composable
 fun InsightsScreen(vm: MainViewModel, state: UiState, system: SystemActions) {
@@ -88,29 +95,34 @@ fun InsightsScreen(vm: MainViewModel, state: UiState, system: SystemActions) {
             .padding(screenPadding()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("History", style = SolarType.title, color = c.ink, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp).semantics { heading() })
+        Text(stringResource(R.string.history), style = SolarType.title, color = c.ink, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp).semantics { heading() })
 
-        Segmented(Range.entries.map { it to it.label }, range, { range = it })
+        Segmented(Range.entries.map { it to stringResource(it.label) }, range, { range = it })
 
         ReliabilityCard(state, range)
         ScheduleCard(state)
 
         SCard {
-            CardHeader("Outage map", trailing = "Last 14 days")
-            Text("Each square is an hour. Darker means the mains were off longer.", style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
+            CardHeader(stringResource(R.string.outage_map), trailing = stringResource(R.string.last_14_days))
+            Text(stringResource(R.string.outage_map_note), style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
             var picked by remember { mutableStateOf<String?>(null) }
             val heatmap = remember(state.outages, state.now / 60_000L) { Insights.heatmap(state.outages, 14, state.now) }
-            val dayFormat = remember { SimpleDateFormat("EEE d MMM", Locale.getDefault()) }
+            val dayFormat = rememberDateFormat("EEE d MMM")
+            val res = LocalResources.current
+            val mapLabel = stringResource(
+                R.string.outage_map_a11y,
+                heatmap.joinToString("; ") { d -> res.getString(R.string.outage_map_day, dayFormat.format(Date(d.dayStart)), d.minutesDown.sum()) }
+            )
             OutageHeatmap(
                 heatmap,
-                Modifier.semantics {
-                    contentDescription = "Outage map: " + heatmap.joinToString("; ") { d -> "${dayFormat.format(Date(d.dayStart))} ${d.minutesDown.sum()} minutes off" }
-                }
+                Modifier.semantics { contentDescription = mapLabel }
             ) { day, hour ->
                 val minutes = day.minutesDown[hour]
-                picked = "${dayFormat.format(Date(day.dayStart))}, ${"%02d:00".format(hour)}: " + if (minutes == 0) "mains on" else "$minutes min off"
+                val dayText = dayFormat.format(Date(day.dayStart))
+                val hourText = "%02d:00".format(Locale.US, hour)
+                picked = if (minutes == 0) res.getString(R.string.picked_on, dayText, hourText) else res.getString(R.string.picked_off, dayText, hourText, minutes)
             }
-            Text(picked ?: "Tap or drag across the map", style = SolarType.caption, color = if (picked != null) c.ink else c.ink3, modifier = Modifier.padding(top = 10.dp))
+            Text(picked ?: stringResource(R.string.map_hint), style = SolarType.caption, color = if (picked != null) c.ink else c.ink3, modifier = Modifier.padding(top = 10.dp))
         }
 
         DayCard(vm, state)
@@ -127,14 +139,15 @@ private fun ReliabilityCard(state: UiState, range: Range) {
     val from = if (range == Range.DAY) OutageLog.startOfDay(now) else now - range.days * OutageLog.DAY_MS
     val stats = remember(state.outages, range, now / 60_000L, state.observedSince) { Insights.range(state.outages, from, now, state.observedSince) }
     val uptime by animateFloatAsState((stats.uptime ?: 0.0).toFloat(), tween(700, easing = FastOutSlowInEasing), label = "uptime")
+    val p = phrases()
 
     SCard {
-        CardHeader("Mains reliability")
+        CardHeader(stringResource(R.string.mains_reliability))
         Spacer(Modifier.height(10.dp))
         Figure(
-            value = stats.uptime?.let { "%.1f".format(it * 100) } ?: "—",
+            value = stats.uptime?.let { "%.1f".format(Locale.US, it * 100) } ?: "—",
             unit = if (stats.uptime != null) "%" else null,
-            label = if (stats.uptime == null) "Not enough history yet" else "of the time the mains were on",
+            label = stringResource(if (stats.uptime == null) R.string.not_enough_history else R.string.of_time_mains_on),
             style = SolarType.figureL
         )
         Spacer(Modifier.height(12.dp))
@@ -143,13 +156,13 @@ private fun ReliabilityCard(state: UiState, range: Range) {
         }
         Spacer(Modifier.height(16.dp))
         Row {
-            Figure(stats.count.toString(), label = "Cuts", modifier = Modifier.weight(1f), style = SolarType.figure)
-            Figure(durationLabel(stats.downMs.takeIf { it > 0 }), label = "On battery", modifier = Modifier.weight(1f), style = SolarType.figure)
+            Figure(stats.count.toString(), label = stringResource(R.string.cuts), modifier = Modifier.weight(1f), style = SolarType.figure)
+            Figure(durationLabel(stats.downMs.takeIf { it > 0 }, p), label = stringResource(R.string.on_battery), modifier = Modifier.weight(1f), style = SolarType.figure)
         }
         Spacer(Modifier.height(12.dp))
         Row {
-            Figure(durationLabel(stats.longestMs.takeIf { it > 0 }), label = "Longest", modifier = Modifier.weight(1f), style = SolarType.figure)
-            Figure(durationLabel(stats.averageMs.takeIf { it > 0 }), label = "Typical", modifier = Modifier.weight(1f), style = SolarType.figure)
+            Figure(durationLabel(stats.longestMs.takeIf { it > 0 }, p), label = stringResource(R.string.longest), modifier = Modifier.weight(1f), style = SolarType.figure)
+            Figure(durationLabel(stats.averageMs.takeIf { it > 0 }, p), label = stringResource(R.string.typical), modifier = Modifier.weight(1f), style = SolarType.figure)
         }
     }
 }
@@ -157,15 +170,16 @@ private fun ReliabilityCard(state: UiState, range: Range) {
 @Composable
 private fun ScheduleCard(state: UiState) {
     val c = Solar.colors
+    val p = phrases()
     SCard {
-        CardHeader("Load-shedding pattern")
+        CardHeader(stringResource(R.string.load_shedding_pattern))
         if (state.schedule.isEmpty()) {
             val days = state.observedSince?.let { ((state.now - it) / OutageLog.DAY_MS).toInt() } ?: 0
             Text(
                 if (days < OutagePredictor.MIN_DAYS_OBSERVED) {
-                    "A pattern needs ${OutagePredictor.MIN_DAYS_OBSERVED} days of history ($days so far)."
+                    stringResource(R.string.pattern_needs_days, OutagePredictor.MIN_DAYS_OBSERVED, days)
                 } else {
-                    "No time of day stands out in the last two weeks."
+                    stringResource(R.string.no_time_stands_out)
                 },
                 style = SolarType.body,
                 color = c.ink2,
@@ -173,7 +187,7 @@ private fun ScheduleCard(state: UiState) {
             )
             return@SCard
         }
-        Text("Times the mains went off on at least half of the days watched", style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))
+        Text(stringResource(R.string.pattern_note), style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))
         state.schedule.forEach { slot ->
             val next = state.prediction?.slot?.minuteOfDay == slot.minuteOfDay
             val share by animateFloatAsState(slot.share.toFloat(), tween(700), label = "share")
@@ -181,7 +195,8 @@ private fun ScheduleCard(state: UiState) {
                 Text(minuteLabel(slot.minuteOfDay), style = SolarType.figure, color = c.ink, modifier = Modifier.width(76.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "${slot.daysSeen} of ${slot.daysObserved} days" + (slot.typicalDurationMs?.let { " · about ${OutageLog.describeDuration(it).nb()}" } ?: ""),
+                        slot.typicalDurationMs?.let { stringResource(R.string.days_of_about, slot.daysSeen, slot.daysObserved, OutageLog.describeDuration(it, p).nb()) }
+                            ?: stringResource(R.string.days_of, slot.daysSeen, slot.daysObserved),
                         style = SolarType.caption,
                         color = c.ink2
                     )
@@ -192,7 +207,7 @@ private fun ScheduleCard(state: UiState) {
                 }
                 if (next) {
                     Spacer(Modifier.width(12.dp))
-                    Text("Next", style = SolarType.bodyStrong, color = c.ink)
+                    Text(stringResource(R.string.next), style = SolarType.bodyStrong, color = c.ink)
                 }
             }
         }
@@ -208,20 +223,20 @@ private fun DayCard(vm: MainViewModel, state: UiState) {
     val dayEnd = OutageLog.startOfDay(dayStart + OutageLog.DAY_MS + 3_600_000L)
     val samples by produceState(emptyList<Sample>(), dayStart, state.todaySamples.size) { value = vm.loadSamples(dayStart, dayEnd) }
     val title = when (back) {
-        0 -> "Today"
-        1 -> "Yesterday"
-        else -> SimpleDateFormat("EEEE d MMM", Locale.getDefault()).format(Date(dayStart))
+        0 -> stringResource(R.string.today)
+        1 -> stringResource(R.string.yesterday)
+        else -> rememberDateFormat("EEEE d MMM").format(Date(dayStart))
     }
 
     SCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { back++ }, enabled = back < 29) { Icon(Icons.Back, contentDescription = "Previous day", tint = c.ink2) }
+            IconButton(onClick = { back++ }, enabled = back < 29) { Icon(Icons.Back, contentDescription = stringResource(R.string.previous_day), tint = c.ink2) }
             Text(title, style = SolarType.cardTitle, color = c.ink, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            IconButton(onClick = { back-- }, enabled = back > 0) { Icon(Icons.Chevron, contentDescription = "Next day", tint = if (back > 0) c.ink2 else c.outlineStrong) }
+            IconButton(onClick = { back-- }, enabled = back > 0) { Icon(Icons.Chevron, contentDescription = stringResource(R.string.next_day), tint = if (back > 0) c.ink2 else c.outlineStrong) }
         }
         Spacer(Modifier.height(8.dp))
         DayChart(samples = samples, outages = state.outages, from = dayStart, to = dayEnd, now = state.now)
-        if (samples.isEmpty()) Text("No readings recorded for this day.", style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 8.dp))
+        if (samples.isEmpty()) Text(stringResource(R.string.no_readings_day), style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -242,28 +257,32 @@ private fun EnergyCard(state: UiState, range: Range) {
     val bought = days.mapNotNull { it.energy.boughtKwh }
 
     SCard {
-        CardHeader("Solar and use", trailing = "Last ${days.size} days")
+        CardHeader(stringResource(R.string.solar_and_use), trailing = stringResource(R.string.last_n_days, days.size))
         Spacer(Modifier.height(12.dp))
         Row {
-            Figure("%.0f".format(produced.sum()), unit = "kWh", label = "Solar made", modifier = Modifier.weight(1f))
-            Figure(if (produced.isEmpty()) "—" else "%.1f".format(produced.average()), unit = "kWh", label = "Per day", modifier = Modifier.weight(1f))
+            Figure("%.0f".format(Locale.US, produced.sum()), unit = "kWh", label = stringResource(R.string.solar_made), modifier = Modifier.weight(1f))
+            Figure(if (produced.isEmpty()) "—" else "%.1f".format(Locale.US, produced.average()), unit = "kWh", label = stringResource(R.string.per_day), modifier = Modifier.weight(1f))
             Figure(
-                if (consumed.sum() > 0 && bought.isNotEmpty()) "%.0f".format((1 - bought.sum() / consumed.sum()).coerceIn(0.0, 1.0) * 100) else "—",
+                if (consumed.sum() > 0 && bought.isNotEmpty()) "%.0f".format(Locale.US, (1 - bought.sum() / consumed.sum()).coerceIn(0.0, 1.0) * 100) else "—",
                 unit = "%",
-                label = "Self-powered",
+                label = stringResource(R.string.self_powered),
                 modifier = Modifier.weight(1f)
             )
         }
         Spacer(Modifier.height(16.dp))
         EnergyBars(days) { picked = it }
         Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Legend("Solar made", c.solar)
-            Legend("Home used", c.home.copy(alpha = 0.55f))
+            Legend(stringResource(R.string.solar_made), c.solar)
+            Legend(stringResource(R.string.home_used), c.home.copy(alpha = 0.55f))
         }
         picked?.let { day ->
             Text(
-                SimpleDateFormat("EEE d MMM", Locale.getDefault()).format(Date(day.dayStart)) +
-                    ": made ${day.energy.producedKwh?.let { "%.1f".format(it) } ?: "—"} kWh, used ${day.energy.consumedKwh?.let { "%.1f".format(it) } ?: "—"} kWh",
+                stringResource(
+                    R.string.picked_energy,
+                    rememberDateFormat("EEE d MMM").format(Date(day.dayStart)),
+                    day.energy.producedKwh?.let { "%.1f".format(Locale.US, it) } ?: "—",
+                    day.energy.consumedKwh?.let { "%.1f".format(Locale.US, it) } ?: "—"
+                ),
                 style = SolarType.caption,
                 color = c.ink,
                 modifier = Modifier.padding(top = 8.dp)
@@ -278,13 +297,13 @@ private fun OutagesCard(vm: MainViewModel, state: UiState, range: Range, system:
     val scope = rememberCoroutineScope()
     val from = if (range == Range.DAY) OutageLog.startOfDay(state.now) else state.now - range.days * OutageLog.DAY_MS
     val records = state.outages.filter { (it.endedAt ?: state.now) >= from }
-    val dayFormat = remember { SimpleDateFormat("EEEE d MMM", Locale.getDefault()) }
-    val time = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val dayFormat = rememberDateFormat("EEEE d MMM")
+    val time = rememberDateFormat("HH:mm")
 
     SCard(padding = PaddingValues(top = 16.dp, bottom = 12.dp)) {
-        CardHeader("Cuts", trailing = "${records.size}", modifier = Modifier.padding(horizontal = 16.dp))
+        CardHeader(stringResource(R.string.cuts), trailing = "${records.size}", modifier = Modifier.padding(horizontal = 16.dp))
         if (records.isEmpty()) {
-            Text("No cuts in this period.", style = SolarType.body, color = c.ink2, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
+            Text(stringResource(R.string.no_cuts_period), style = SolarType.body, color = c.ink2, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
         } else {
             var lastDay = ""
             records.take(60).forEach { record ->
@@ -298,7 +317,7 @@ private fun OutagesCard(vm: MainViewModel, state: UiState, range: Range, system:
         }
         Spacer(Modifier.height(8.dp))
         SecondaryButton(
-            "Export all as CSV",
+            stringResource(R.string.export_csv),
             onClick = { scope.launch { vm.exportIntent()?.let(system::share) } },
             icon = Icons.Export,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
@@ -309,16 +328,17 @@ private fun OutagesCard(vm: MainViewModel, state: UiState, range: Range, system:
 @Composable
 private fun OutageRow(record: OutageRecord, now: Long, time: SimpleDateFormat) {
     val c = Solar.colors
+    val p = phrases()
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(
-                "${time.format(Date(record.startedAt))} – ${record.endedAt?.let { time.format(Date(it)) } ?: "now"}",
+                "${time.format(Date(record.startedAt))} – ${record.endedAt?.let { time.format(Date(it)) } ?: stringResource(R.string.now)}",
                 style = SolarType.body.copy(fontFeatureSettings = "tnum"),
                 color = if (record.ongoing) c.down else c.ink
             )
-            record.batteryUsed?.let { Text("Used ${"%.0f".format(it)}% of the battery", style = SolarType.caption, color = c.ink3) }
+            record.batteryUsed?.let { Text(stringResource(R.string.used_battery, "%.0f".format(Locale.US, it)), style = SolarType.caption, color = c.ink3) }
         }
-        Text(OutageLog.describeDuration(record.durationMs(now)), style = SolarType.figureS, color = if (record.ongoing) c.down else c.ink2)
+        Text(OutageLog.describeDuration(record.durationMs(now), p), style = SolarType.figureS, color = if (record.ongoing) c.down else c.ink2)
     }
 }
 
@@ -326,10 +346,10 @@ private fun OutageRow(record: OutageRecord, now: Long, time: SimpleDateFormat) {
 private fun ActivityCard(state: UiState) {
     val c = Solar.colors
     if (state.events.isEmpty()) return
-    val format = remember { SimpleDateFormat("d MMM, HH:mm", Locale.getDefault()) }
+    val format = rememberDateFormat("d MMM, HH:mm")
 
     SCard(padding = PaddingValues(vertical = 12.dp)) {
-        CardHeader("Activity", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+        CardHeader(stringResource(R.string.activity), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
         state.events.take(25).forEachIndexed { index, event ->
             if (index > 0) Divider(Modifier.padding(start = 52.dp))
             val (icon, tone) = when (event.kind) {

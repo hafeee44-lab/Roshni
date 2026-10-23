@@ -1,5 +1,6 @@
 package io.github.hafeee44lab.solargrid.ui.alarm
 
+import io.github.hafeee44lab.solargrid.ui.components.rememberDateFormat
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -40,6 +41,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,12 +59,16 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.AppGraph
 import io.github.hafeee44lab.solargrid.data.SolarSnapshot
 import io.github.hafeee44lab.solargrid.data.ThemeMode
@@ -76,6 +82,7 @@ import io.github.hafeee44lab.solargrid.service.AlarmPlayer
 import io.github.hafeee44lab.solargrid.service.Notifier
 import io.github.hafeee44lab.solargrid.ui.components.Icons
 import io.github.hafeee44lab.solargrid.ui.components.RollingText
+import io.github.hafeee44lab.solargrid.ui.components.phrases
 import io.github.hafeee44lab.solargrid.ui.theme.Solar
 import io.github.hafeee44lab.solargrid.ui.theme.SolarTheme
 import io.github.hafeee44lab.solargrid.ui.theme.SolarType
@@ -143,7 +150,8 @@ class AlarmActivity : ComponentActivity() {
 
 @Composable
 private fun AlarmScreen(kind: AlertKind, test: Boolean, snapshot: SolarSnapshot, onStop: () -> Unit) {
-    val ui = buildHomeUi(snapshot, running = true)
+    val p = phrases()
+    val ui = buildHomeUi(snapshot, running = true, p = p)
     val restored = !test && kind == AlertKind.OUTAGE && ui.heroRole == StateRole.UP
     val ringing by AlarmPlayer.ringing.collectAsState()
     val ringMs by AlarmPlayer.durationMs.collectAsState()
@@ -170,7 +178,7 @@ private fun AlarmScreen(kind: AlertKind, test: Boolean, snapshot: SolarSnapshot,
             delay(1000L - now % 1000L)
         }
     }
-    val clock = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val clock = rememberDateFormat("HH:mm")
 
     Box(
         Modifier
@@ -188,10 +196,10 @@ private fun AlarmScreen(kind: AlertKind, test: Boolean, snapshot: SolarSnapshot,
             Text(clock.format(Date(now)), style = SolarType.figureL, color = OnAlarmSoft, modifier = Modifier.padding(top = 24.dp))
             Text(
                 when {
-                    test -> "Test alarm · nothing is wrong"
-                    restored -> "The mains are back"
-                    since != null -> "Mains went off at ${clock.format(Date(since))}"
-                    else -> "The mains went off"
+                    test -> stringResource(R.string.alarm_test_sub)
+                    restored -> stringResource(R.string.alarm_mains_back)
+                    since != null -> stringResource(R.string.alarm_went_off_at, clock.format(Date(since)))
+                    else -> stringResource(R.string.alarm_went_off)
                 },
                 style = SolarType.body,
                 color = OnAlarmSoft
@@ -208,10 +216,10 @@ private fun AlarmScreen(kind: AlertKind, test: Boolean, snapshot: SolarSnapshot,
             AnimatedContent(restored, transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(250)) }, label = "title") { back ->
                 Text(
                     when {
-                        back -> "Mains back on"
-                        test -> "Test alarm"
-                        kind == AlertKind.CRITICAL_BATTERY -> "Battery critical"
-                        else -> "Mains off"
+                        back -> stringResource(R.string.mains_back_on)
+                        test -> stringResource(R.string.test_alarm_title)
+                        kind == AlertKind.CRITICAL_BATTERY -> stringResource(R.string.battery_critical)
+                        else -> stringResource(R.string.mains_off)
                     },
                     style = SolarType.figureXL,
                     color = OnAlarm,
@@ -221,9 +229,9 @@ private fun AlarmScreen(kind: AlertKind, test: Boolean, snapshot: SolarSnapshot,
             }
             Text(
                 when {
-                    restored -> "Everything is back on mains power."
-                    test -> "This is what a cut looks and sounds like."
-                    else -> "Your home is running on the battery."
+                    restored -> stringResource(R.string.alarm_restored_body)
+                    test -> stringResource(R.string.alarm_test_body)
+                    else -> stringResource(R.string.alarm_body)
                 },
                 style = SolarType.body,
                 color = OnAlarmSoft,
@@ -232,25 +240,25 @@ private fun AlarmScreen(kind: AlertKind, test: Boolean, snapshot: SolarSnapshot,
             )
 
             Row(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                AlarmFact("Battery", "${ui.socText}%")
-                AlarmFact("Time left", snapshot.runtimeMinutes?.takeIf { it > 0 }?.let { RuntimeEstimator.describe(it) } ?: "—")
+                AlarmFact(stringResource(R.string.battery), "${ui.socText}%")
+                AlarmFact(stringResource(R.string.time_left), snapshot.runtimeMinutes?.takeIf { it > 0 }?.let { RuntimeEstimator.describe(it, p) } ?: "—")
                 AlarmFact(
-                    "Off for",
+                    stringResource(R.string.off_for),
                     since?.let {
                         val s = ((now - it) / 1000L).coerceAtLeast(0L)
-                        "%d:%02d:%02d".format(s / 3600, (s % 3600) / 60, s % 60)
+                        "%d:%02d:%02d".format(Locale.US, s / 3600, (s % 3600) / 60, s % 60)
                     } ?: "—"
                 )
             }
 
             Spacer(Modifier.weight(1f))
 
-            SlideToStop(if (ringing) "Slide to stop the alarm" else "Slide to close", onStop)
+            SlideToStop(stringResource(if (ringing) R.string.slide_to_stop else R.string.slide_to_close), onStop)
             Text(
                 when {
-                    !ringing -> "Alarm stopped"
-                    ringMs <= 0 -> "Rings until you stop it or the mains return"
-                    else -> "Stops by itself after ${AlertSettings.describeRing((ringMs / 1000).toInt())}"
+                    !ringing -> stringResource(R.string.alarm_stopped)
+                    ringMs <= 0 -> stringResource(R.string.rings_until_stopped)
+                    else -> stringResource(R.string.stops_after, AlertSettings.describeRing((ringMs / 1000).toInt(), p))
                 },
                 style = SolarType.caption,
                 color = OnAlarmSoft,
@@ -271,10 +279,13 @@ private fun AlarmFact(label: String, value: String) {
 /** A deliberate gesture, so a pocket or a pillow can't silence the alarm by accident. */
 @Composable
 private fun SlideToStop(label: String, onStop: () -> Unit) {
+    // The thumb slides left to right in every language, matching its arrow and the drag maths.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val offset = remember { Animatable(0f) }
+    val stopLabel = stringResource(R.string.stop_alarm)
 
     BoxWithConstraints(
         Modifier
@@ -283,7 +294,7 @@ private fun SlideToStop(label: String, onStop: () -> Unit) {
             .clip(CircleShape)
             .background(Color(0x33FFFFFF))
             .semantics {
-                contentDescription = "Stop alarm"
+                contentDescription = stopLabel
                 onClick { onStop(); true }
             }
     ) {
@@ -324,4 +335,5 @@ private fun SlideToStop(label: String, onStop: () -> Unit) {
             Icon(Icons.Chevron, null, tint = AlarmRed, modifier = Modifier.size(26.dp))
         }
     }
+}
 }

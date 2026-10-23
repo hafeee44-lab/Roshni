@@ -14,13 +14,15 @@ import androidx.compose.ui.unit.dp
  */
 object Icons {
 
-    private fun icon(name: String, vararg paths: String): ImageVector {
+    /** [mirrored] flips the icon in right-to-left languages, for arrows that mean "back" or "forward". */
+    private fun icon(name: String, vararg paths: String, mirrored: Boolean = false): ImageVector {
         val builder = ImageVector.Builder(
             name = name,
             defaultWidth = 24.dp,
             defaultHeight = 24.dp,
             viewportWidth = 24f,
-            viewportHeight = 24f
+            viewportHeight = 24f,
+            autoMirror = mirrored
         )
         paths.forEach {
             builder.addPath(
@@ -43,8 +45,8 @@ object Icons {
         "M4 17.5H14.5", "M18.5 17.5H20", "M16.5 15.5V19.5"
     )
     val Refresh = icon("refresh", "M19.5 12A7.5 7.5 0 1 1 17.3 6.7", "M19.5 4V8.5H15")
-    val Back = icon("back", "M15 5L8 12L15 19")
-    val Chevron = icon("chevron", "M9.5 6L15.5 12L9.5 18")
+    val Back = icon("back", "M15 5L8 12L15 19", mirrored = true)
+    val Chevron = icon("chevron", "M9.5 6L15.5 12L9.5 18", mirrored = true)
     val ChevronDown = icon("chevron_down", "M6 9.5L12 15.5L18 9.5")
     val Check = icon("check", "M5 12.5L9.5 17L19 7.5")
     val Warning = icon("warning", "M12 3.5L2.8 19.5H21.2Z", "M12 10V14", "M12 16.9V17")
@@ -92,5 +94,6 @@ object Icons {
         "M7 7H13V11H7Z", "M16.5 7.5V7.6", "M16.5 10V10.1",
         "M8 17V20.5", "M12 17V20.5", "M16 17V20.5"
     )
+    val Globe = icon("globe", "M12 3A9 9 0 1 0 12.01 3Z", "M3.5 12H20.5", "M12 3C9.2 6 9.2 18 12 21", "M12 3C14.8 6 14.8 18 12 21")
     val Sparkle = icon("sparkle", "M12 3L13.8 10.2L21 12L13.8 13.8L12 21L10.2 13.8L3 12L10.2 10.2Z")
 }

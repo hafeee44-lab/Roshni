@@ -6,6 +6,7 @@ import io.github.hafeee44lab.solargrid.data.HistoryDb
 import io.github.hafeee44lab.solargrid.data.Sample
 import io.github.hafeee44lab.solargrid.data.SolarSnapshot
 import io.github.hafeee44lab.solargrid.data.StateStore
+import io.github.hafeee44lab.solargrid.data.phrases
 import io.github.hafeee44lab.solargrid.domain.AlertPlanner
 import io.github.hafeee44lab.solargrid.domain.AlertSettings
 import io.github.hafeee44lab.solargrid.domain.DaySummary
@@ -104,7 +105,8 @@ class MonitorEngine(private val graph: AppGraph) {
             prediction = prediction,
             summary = DaySummary(todayStats.count, todayStats.downMs, energy.producedKwh, energy.selfSufficiency),
             startOfDay = today,
-            formatTime = { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it)) }
+            formatTime = { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it)) },
+            phrases = graph.app.phrases()
         )
 
         val plan = AlertPlanner.plan(state.monitor, observation, ctx)

@@ -2,6 +2,7 @@ package io.github.hafeee44lab.solargrid.data
 
 import android.content.SharedPreferences
 import io.github.hafeee44lab.solargrid.domain.DailyEnergy
+import io.github.hafeee44lab.solargrid.domain.Phrases
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -161,14 +162,13 @@ data class SolarSnapshot(
     }
 }
 
-fun describeAge(millis: Long): String = when {
-    millis < 0L -> "unknown"
-    millis < 45_000L -> "just now"
-    millis < 90_000L -> "1 min ago"
-    millis < 60 * 60_000L -> "${millis / 60_000L} min ago"
-    millis < 2 * 60 * 60_000L -> "1 hour ago"
-    millis < 24 * 60 * 60_000L -> "${millis / (60 * 60_000L)} hours ago"
-    else -> "over a day ago"
+fun describeAge(millis: Long, p: Phrases = Phrases.English): String = when {
+    millis < 0L -> p.ageUnknown()
+    millis < 45_000L -> p.justNow()
+    millis < 90_000L -> p.minutesAgo(1)
+    millis < 60 * 60_000L -> p.minutesAgo(millis / 60_000L)
+    millis < 24 * 60 * 60_000L -> p.hoursAgo(millis / (60 * 60_000L))
+    else -> p.overADayAgo()
 }
 
 /** org.json refuses NaN and Infinity outright; store them as "no reading" instead of failing the save. */

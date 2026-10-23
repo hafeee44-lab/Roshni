@@ -46,6 +46,7 @@ Built for places where load-shedding is part of the day. Your inverter already s
 **Everywhere you look**
 - Home-screen widget, Quick Settings tile and an ongoing notification.
 - A **demo mode** with a simulated system and two weeks of history, so you can try everything without an inverter.
+- **English and Urdu** (اردو), right to left, including alerts and the WhatsApp relay. On Android 13+ pick the language per app in system settings.
 - Dark and light themes, honouring "Remove animations" and large font sizes.
 
 <p align="center">

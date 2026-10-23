@@ -12,17 +12,19 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.Account
 import io.github.hafeee44lab.solargrid.data.AppGraph
-import io.github.hafeee44lab.solargrid.data.HistoryImport
 import io.github.hafeee44lab.solargrid.data.AppSettings
 import io.github.hafeee44lab.solargrid.data.DayEnergy
 import io.github.hafeee44lab.solargrid.data.DiscoveredDevice
+import io.github.hafeee44lab.solargrid.data.HistoryImport
 import io.github.hafeee44lab.solargrid.data.Profile
 import io.github.hafeee44lab.solargrid.data.Sample
 import io.github.hafeee44lab.solargrid.data.SolarSnapshot
 import io.github.hafeee44lab.solargrid.data.SolarmanSource
 import io.github.hafeee44lab.solargrid.data.changes
+import io.github.hafeee44lab.solargrid.data.phrases
 import io.github.hafeee44lab.solargrid.domain.Event
 import io.github.hafeee44lab.solargrid.domain.HomeUi
 import io.github.hafeee44lab.solargrid.domain.OutageLog
@@ -109,12 +111,12 @@ private data class ProfileData(
     val importNote: String?
 )
 
-private fun importNote(prefs: android.content.SharedPreferences): String? {
+private fun importNote(prefs: android.content.SharedPreferences, res: android.content.res.Resources): String? {
     val failed = prefs.getString(HistoryImport.FAILED_MESSAGE, null)
-    if (failed != null) return "Last try failed: $failed"
+    if (failed != null) return res.getString(R.string.import_last_failed, failed)
     if (prefs.getLong(HistoryImport.DONE_AT, 0L) == 0L) return null
     val days = prefs.getInt(HistoryImport.DONE_DAYS, 0)
-    return if (days == 0) "History already covered the last two weeks" else "$days days imported, with ${prefs.getInt(HistoryImport.DONE_CUTS, 0)} cuts"
+    return if (days == 0) res.getString(R.string.import_already_covered) else res.getString(R.string.import_done_note, days, prefs.getInt(HistoryImport.DONE_CUTS, 0))
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -163,7 +165,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     apiCallsToday = state.apiCallsToday(now),
                     apiCallsYesterday = state.apiCallsYesterday(now),
                     quotaExhausted = state.quotaHitAt > 0L,
-                    importNote = importNote(state.prefs),
+                    importNote = importNote(state.prefs, graph.app.resources),
                     typicalLowLoadW = RuntimeEstimator.typicalLowLoad(db.samples(now - 7 * OutageLog.DAY_MS).map { it.loadW })
                 )
             }
@@ -182,7 +184,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     settings = settings,
                     account = account,
                     snapshot = data.snapshot,
-                    home = buildHomeUi(data.snapshot, settings.monitoring, now),
+                    home = buildHomeUi(data.snapshot, settings.monitoring, now, graph.app.phrases()),
                     dump = data.dump,
                     outages = data.outages,
                     events = data.events,
@@ -304,10 +306,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun importHistory(onDone: (String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             val message = when (val outcome = HistoryImport(graph).runIfDue(force = true)) {
-                is HistoryImport.Outcome.Imported -> "Imported ${outcome.days} days with ${outcome.cuts} cuts"
+                is HistoryImport.Outcome.Imported -> graph.app.getString(R.string.import_done, outcome.days, outcome.cuts)
                 is HistoryImport.Outcome.Failed -> outcome.message
-                HistoryImport.Outcome.NothingToDo -> "History already covers the last two weeks"
-                HistoryImport.Outcome.Skipped -> "Already importing, or no Solarman account connected"
+                HistoryImport.Outcome.NothingToDo -> graph.app.getString(R.string.import_covers)
+                HistoryImport.Outcome.Skipped -> graph.app.getString(R.string.import_busy)
             }
             withContext(Dispatchers.Main) { onDone(message) }
         }
@@ -322,7 +324,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun testRelay(): Boolean = withContext(Dispatchers.IO) {
         try {
-            Relay.sendTest(graph.settings.load().relay)
+            Relay.sendTest(graph.settings.load().relay, graph.app.getString(R.string.relay_test))
         } catch (e: Exception) {
             false
         }
@@ -356,7 +358,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         Intent(Intent.ACTION_SEND)
             .setType("text/csv")
             .putExtra(Intent.EXTRA_STREAM, uri)
-            .putExtra(Intent.EXTRA_SUBJECT, "Grid outage history")
+            .putExtra(Intent.EXTRA_SUBJECT, graph.app.getString(R.string.export_subject))
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 

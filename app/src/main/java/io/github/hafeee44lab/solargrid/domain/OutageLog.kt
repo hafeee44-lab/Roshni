@@ -101,18 +101,10 @@ object OutageLog {
         return minOf(raw, 24 - raw) <= 1
     }
 
-    fun describeDuration(ms: Long): String {
+    fun describeDuration(ms: Long, p: Phrases = Phrases.English): String {
         val totalMinutes = (ms / 60_000L).toInt()
-        if (totalMinutes < 1) return "under a minute"
-
-        val hours = totalMinutes / 60
-        val minutes = totalMinutes % 60
-
-        return when {
-            hours == 0 -> "${minutes}m"
-            minutes == 0 -> "${hours}h"
-            else -> "${hours}h ${minutes}m"
-        }
+        if (totalMinutes < 1) return p.underAMinute()
+        return p.hoursMinutes(totalMinutes / 60, totalMinutes % 60)
     }
 
     fun begin(records: List<OutageRecord>, at: Long, soc: Double?): List<OutageRecord> {

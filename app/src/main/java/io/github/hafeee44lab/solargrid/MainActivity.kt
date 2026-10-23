@@ -108,7 +108,7 @@ class MainActivity : ComponentActivity(), SystemActions {
     }
 
     override fun share(intent: Intent) {
-        tryStart(Intent.createChooser(intent, "Share outage history"))
+        tryStart(Intent.createChooser(intent, getString(R.string.share_history)))
     }
 
     private fun tryStart(intent: Intent): Boolean = try {

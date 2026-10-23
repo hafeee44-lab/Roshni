@@ -1,5 +1,10 @@
 package io.github.hafeee44lab.solargrid.ui.components
 
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import java.text.SimpleDateFormat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -51,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -58,6 +64,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.hafeee44lab.solargrid.domain.Phrases
 import io.github.hafeee44lab.solargrid.ui.theme.Solar
 import io.github.hafeee44lab.solargrid.ui.theme.SolarType
 import kotlin.math.roundToInt
@@ -104,10 +111,14 @@ fun CardHeader(title: String, modifier: Modifier = Modifier, trailing: String? =
  */
 @Composable
 fun RollingText(text: String, style: TextStyle, color: Color, modifier: Modifier = Modifier) {
-    if (Solar.reduceMotion) {
+    // Only numbers roll. Words are drawn whole: Urdu letters join up, and splitting them into
+    // separate characters would break the script.
+    if (Solar.reduceMotion || text.any { it.isLetter() }) {
         Text(text, style = style, color = color, modifier = modifier, maxLines = 1)
         return
     }
+    // Digits keep their left-to-right order in every language, or "61" would read "16" in Urdu.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
     Row(modifier.clearAndSetSemantics { contentDescription = text }) {
         text.forEachIndexed { index, char ->
             key(text.length - index) {
@@ -126,6 +137,7 @@ fun RollingText(text: String, style: TextStyle, color: Color, modifier: Modifier
                 ) { ch -> Text(ch.toString(), style = style, color = color, maxLines = 1) }
             }
         }
+    }
     }
 }
 
@@ -375,4 +387,15 @@ fun ListGroup(title: String?, modifier: Modifier = Modifier, footer: String? = n
             Text(footer, style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp))
         }
     }
+}
+
+/** The domain layer's phrases (status, durations) in the app's current language. */
+@Composable
+fun phrases(): Phrases = Phrases.of(LocalConfiguration.current.locales[0])
+
+/** A date format in the app's current language, rebuilt when the language changes. */
+@Composable
+fun rememberDateFormat(pattern: String): SimpleDateFormat {
+    val locale = LocalConfiguration.current.locales[0]
+    return remember(pattern, locale) { SimpleDateFormat(pattern, locale) }
 }

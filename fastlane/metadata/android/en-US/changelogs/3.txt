@@ -3,3 +3,4 @@
 • Choose how long the alarm rings, up to "until I stop it"
 • Far fewer Solarman API calls during cuts; a used-up allowance is explained, not retried blindly
 • New app icon
+• Now in Urdu (اردو) as well as English

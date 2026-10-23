@@ -72,7 +72,8 @@ data class PlanContext(
     val prediction: Prediction? = null,
     val summary: DaySummary? = null,
     val startOfDay: Long = OutageLog.startOfDay(now),
-    val formatTime: (Long) -> String = { "%tR".format(Locale.US, it) }
+    val formatTime: (Long) -> String = { "%tR".format(Locale.US, it) },
+    val phrases: Phrases = Phrases.English
 )
 
 data class Plan(
@@ -124,7 +125,7 @@ object AlertPlanner {
 
             if (previous.silentSent) {
                 state = state.copy(silentSent = false)
-                events += Event(EventKind.HEALTH, ctx.now, "Inverter is reporting again")
+                events += Event(EventKind.HEALTH, ctx.now, ctx.phrases.reportingAgain())
             }
 
             verdict = GridAnalyzer.evaluate(reading)
@@ -149,25 +150,21 @@ object AlertPlanner {
                             state = state.copy(outageSince = since)
                             began = since
 
-                            val runtime = ctx.runtimeMinutes?.takeIf { it > 0 }
-                                ?.let { " · lasts about ${RuntimeEstimator.describe(it)}" } ?: ""
+                            val p = ctx.phrases
+                            val runtime = ctx.runtimeMinutes?.takeIf { it > 0 }?.let { RuntimeEstimator.describe(it, p) }
 
                             alerts += Alert(
                                 kind = AlertKind.OUTAGE,
-                                title = "Mains off — on battery",
-                                body = "Running on battery at $socText%$runtime.",
+                                title = p.outageTitle(),
+                                body = p.outageBody(socText, runtime),
                                 ring = settings.alarmOnOutage && !quiet,
-                                relay = "⚠️ *Grid outage*\nMains power is down, running on battery.\n" +
-                                    "Battery: $socText%\n${ctx.formatTime(since)}"
+                                relay = p.outageRelay(socText, ctx.formatTime(since))
                             )
-                            events += Event(EventKind.OUTAGE, since, "Grid failed — ${verdict.basis}")
+                            events += Event(EventKind.OUTAGE, since, p.outageEvent(verdict.basis))
                         } else {
+                            val p = ctx.phrases
                             val since = previous.outageSince
-                            val lasted = if (since > 0L) {
-                                " after ${OutageLog.describeDuration(ctx.now - since)}"
-                            } else {
-                                ""
-                            }
+                            val lasted = if (since > 0L) OutageLog.describeDuration(ctx.now - since, p) else null
 
                             state = state.copy(outageSince = 0L)
                             ended = ctx.now
@@ -176,18 +173,17 @@ object AlertPlanner {
                             if (settings.notifyRestored) {
                                 alerts += Alert(
                                     kind = AlertKind.RESTORED,
-                                    title = "Mains back on",
-                                    body = "Mains are back$lasted. Battery at $socText%.",
-                                    relay = "⚡ *Grid restored*\nMains power is back$lasted.\n" +
-                                        "Battery: $socText%\n${ctx.formatTime(ctx.now)}"
+                                    title = p.restoredTitle(),
+                                    body = p.restoredBody(socText, lasted),
+                                    relay = p.restoredRelay(socText, lasted, ctx.formatTime(ctx.now))
                                 )
                             }
-                            events += Event(EventKind.RESTORED, ctx.now, "Grid restored$lasted — ${verdict.basis}")
+                            events += Event(EventKind.RESTORED, ctx.now, p.restoredEvent(lasted, verdict.basis))
                         }
                     }
 
                     is Transition.Baseline ->
-                        events += Event(EventKind.INFO, ctx.now, "Monitoring started — grid online")
+                        events += Event(EventKind.INFO, ctx.now, ctx.phrases.monitoringStarted())
 
                     is Transition.Hold -> Unit
                 }
@@ -235,27 +231,28 @@ object AlertPlanner {
         var state = current
         val down = state.outage.committedDown == true
         val socText = percent(soc)
+        val p = ctx.phrases
 
         if (down) {
             if (soc <= settings.criticalBatteryPercent && !state.criticalSent) {
                 state = state.copy(criticalSent = true, lowSent = true)
                 alerts += Alert(
                     kind = AlertKind.CRITICAL_BATTERY,
-                    title = "Battery critical · $socText%",
-                    body = runtimeLine(ctx, soc) + " Switch off what you can.",
+                    title = p.criticalTitle(socText),
+                    body = runtimeLine(ctx, soc) + " " + p.switchOffWhatYouCan(),
                     ring = settings.criticalAlarm,
-                    relay = "🪫 *Battery critical — $socText%*\nGrid is still down.\n${ctx.formatTime(ctx.now)}"
+                    relay = p.criticalRelay(socText, ctx.formatTime(ctx.now))
                 )
-                events += Event(EventKind.BATTERY, ctx.now, "Battery critical at $socText% during outage")
+                events += Event(EventKind.BATTERY, ctx.now, p.criticalEvent(socText))
             } else if (soc <= settings.lowBatteryPercent && !state.lowSent) {
                 state = state.copy(lowSent = true)
                 alerts += Alert(
                     kind = AlertKind.LOW_BATTERY,
-                    title = "Battery low · $socText%",
+                    title = p.lowTitle(socText),
                     body = runtimeLine(ctx, soc),
-                    relay = "🔋 *Battery low — $socText%*\nGrid is still down.\n${ctx.formatTime(ctx.now)}"
+                    relay = p.lowRelay(socText, ctx.formatTime(ctx.now))
                 )
-                events += Event(EventKind.BATTERY, ctx.now, "Battery low at $socText% during outage")
+                events += Event(EventKind.BATTERY, ctx.now, p.lowEvent(socText))
             }
 
             val load = reading.loadPowerW
@@ -263,10 +260,10 @@ object AlertPlanner {
                 state = state.copy(overloadSent = true)
                 alerts += Alert(
                     kind = AlertKind.OVERLOAD,
-                    title = "Heavy load on battery",
-                    body = "The house is drawing ${kw(load)}. " + runtimeLine(ctx, soc)
+                    title = p.overloadTitle(),
+                    body = p.overloadBody(kw(load)) + " " + runtimeLine(ctx, soc)
                 )
-                events += Event(EventKind.BATTERY, ctx.now, "Heavy load on battery: ${kw(load)}")
+                events += Event(EventKind.BATTERY, ctx.now, p.overloadEvent(kw(load)))
             }
         }
 
@@ -284,12 +281,8 @@ object AlertPlanner {
                 val surplus = (reading.solarPowerW ?: 0.0) - (reading.loadPowerW ?: 0.0)
                 alerts += Alert(
                     kind = AlertKind.BATTERY_FULL,
-                    title = "Battery full",
-                    body = if (surplus > 300) {
-                        "Solar has ${kw(surplus)} to spare — a good time for heavy appliances."
-                    } else {
-                        "The battery is charged to $socText%."
-                    }
+                    title = p.fullTitle(),
+                    body = if (surplus > 300) p.fullSurplus(kw(surplus)) else p.fullCharged(socText)
                 )
             }
         } else if (soc <= FULL_CLEAR_PERCENT) {
@@ -309,6 +302,7 @@ object AlertPlanner {
     ): MonitorState {
         var state = current
         val settings = ctx.settings
+        val p = ctx.phrases
 
         val temp = reading.inverterTempC
         if (temp != null && temp >= settings.inverterHotC && !state.hotSent) {
@@ -316,11 +310,11 @@ object AlertPlanner {
             if (settings.notifyHealth) {
                 alerts += Alert(
                     kind = AlertKind.INVERTER_HOT,
-                    title = "Inverter running hot · ${"%.0f".format(Locale.US, temp)}°C",
-                    body = "Check that its vents are clear and it isn't in direct sun."
+                    title = p.hotTitle("%.0f".format(Locale.US, temp)),
+                    body = p.hotBody()
                 )
             }
-            events += Event(EventKind.HEALTH, ctx.now, "Inverter at ${"%.0f".format(Locale.US, temp)}°C")
+            events += Event(EventKind.HEALTH, ctx.now, p.hotEvent("%.0f".format(Locale.US, temp)))
         } else if (temp != null && temp < settings.inverterHotC - HOT_CLEAR_MARGIN_C) {
             state = state.copy(hotSent = false)
         }
@@ -333,11 +327,11 @@ object AlertPlanner {
             if (settings.notifyHealth) {
                 alerts += Alert(
                     kind = AlertKind.INVERTER_FAULT,
-                    title = "Inverter reports a fault",
-                    body = "Solarman flags an alarm on your inverter. Open the Solarman app for the code."
+                    title = p.faultTitle(),
+                    body = p.faultBody()
                 )
             }
-            events += Event(EventKind.HEALTH, ctx.now, "Solarman reports an inverter alarm")
+            events += Event(EventKind.HEALTH, ctx.now, p.faultEvent())
         } else if (!inverterAlarm) {
             state = state.copy(faultSent = false)
         }
@@ -363,21 +357,18 @@ object AlertPlanner {
         val age = ctx.now - current.lastUploadAt
         if (age < ctx.staleAfterMs) return current
 
-        val minutes = OutageLog.describeDuration(age)
+        val p = ctx.phrases
+        val minutes = OutageLog.describeDuration(age, p)
         val down = current.outage.committedDown == true
 
         if (ctx.settings.notifyHealth) {
             alerts += Alert(
                 kind = AlertKind.INVERTER_SILENT,
-                title = "Inverter has gone quiet",
-                body = if (down) {
-                    "No data for $minutes during the outage. The battery may have run out, or the Wi-Fi is down."
-                } else {
-                    "No data for $minutes. If your router isn't on backup power, the mains may be down."
-                }
+                title = p.silentTitle(),
+                body = if (down) p.silentBodyDown(minutes) else p.silentBodyUp(minutes)
             )
         }
-        events += Event(EventKind.HEALTH, ctx.now, "Inverter silent for $minutes")
+        events += Event(EventKind.HEALTH, ctx.now, p.silentEvent(minutes))
         return current.copy(silentSent = true)
     }
 
@@ -397,19 +388,20 @@ object AlertPlanner {
         val lead = prediction.startsAt - ctx.now
         if (lead <= 0L || lead > settings.headsUpLeadMinutes * 60_000L) return current
 
+        val p = ctx.phrases
         val slot = prediction.slot
-        val usually = slot.typicalDurationMs?.let { " for about ${OutageLog.describeDuration(it)}" } ?: ""
+        val usually = slot.typicalDurationMs?.let { OutageLog.describeDuration(it, p) }
         val runtime = ctx.runtimeMinutes
         val cover = when {
             runtime == null || slot.typicalDurationMs == null -> ""
-            runtime * 60_000L >= slot.typicalDurationMs -> " Your battery should cover it."
-            else -> " At this load the battery lasts about ${RuntimeEstimator.describe(runtime)} — less than usual."
+            runtime * 60_000L >= slot.typicalDurationMs -> p.batteryShouldCover()
+            else -> p.batteryFallsShort(RuntimeEstimator.describe(runtime, p))
         }
 
         alerts += Alert(
             kind = AlertKind.HEADS_UP,
-            title = "Outage likely around ${ctx.formatTime(prediction.startsAt)}",
-            body = "It has gone off near this time on ${slot.daysSeen} of the last ${slot.daysObserved} days$usually.$cover"
+            title = p.headsUpTitle(ctx.formatTime(prediction.startsAt)),
+            body = p.headsUpBody(slot.daysSeen, slot.daysObserved, usually, cover)
         )
         return current.copy(headsUpFor = prediction.startsAt)
     }
@@ -422,25 +414,22 @@ object AlertPlanner {
         if (ctx.minuteOfDay < settings.summaryMinuteOfDay) return current
         if (current.summaryDay == ctx.startOfDay) return current
 
+        val p = ctx.phrases
         val parts = mutableListOf<String>()
-        parts += when (summary.outages) {
-            0 -> "No outages"
-            1 -> "1 outage · ${OutageLog.describeDuration(summary.downMs)} on battery"
-            else -> "${summary.outages} outages · ${OutageLog.describeDuration(summary.downMs)} on battery"
-        }
-        summary.producedKwh?.let { parts += "solar ${"%.1f".format(Locale.US, it)} kWh" }
-        summary.selfSufficiency?.let { parts += "${"%.0f".format(Locale.US, it * 100)}% self-powered" }
+        parts += p.summaryCuts(summary.outages, OutageLog.describeDuration(summary.downMs, p))
+        summary.producedKwh?.let { parts += p.summarySolar("%.1f".format(Locale.US, it)) }
+        summary.selfSufficiency?.let { parts += p.summarySelfPowered("%.0f".format(Locale.US, it * 100)) }
 
-        alerts += Alert(kind = AlertKind.SUMMARY, title = "Today on your system", body = parts.joinToString(" · "))
+        alerts += Alert(kind = AlertKind.SUMMARY, title = p.summaryTitle(), body = parts.joinToString(" · "))
         return current.copy(summaryDay = ctx.startOfDay)
     }
 
     private fun runtimeLine(ctx: PlanContext, soc: Double): String {
         val minutes = ctx.runtimeMinutes
         return if (minutes != null && minutes > 0) {
-            "Power runs out around ${ctx.formatTime(ctx.now + minutes * 60_000L)} at this load."
+            ctx.phrases.runsOutAround(ctx.formatTime(ctx.now + minutes * 60_000L))
         } else {
-            "Only ${percent(soc)}% left and the grid is still down."
+            ctx.phrases.onlyLeft(percent(soc))
         }
     }
 

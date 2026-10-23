@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -153,8 +154,8 @@ private fun StepScaffold(actions: @Composable ColumnScope.() -> Unit, body: @Com
 @Composable
 private fun Welcome(onConnect: () -> Unit, onDemo: () -> Unit) = StepScaffold(
     actions = {
-        PrimaryButton("Connect my inverter", onConnect, Modifier.fillMaxWidth())
-        SecondaryButton("Try with demo data", onDemo, Modifier.fillMaxWidth())
+        PrimaryButton(stringResource(R.string.connect_inverter), onConnect, Modifier.fillMaxWidth())
+        SecondaryButton(stringResource(R.string.try_demo), onDemo, Modifier.fillMaxWidth())
     }
 ) {
     val c = Solar.colors
@@ -169,16 +170,16 @@ private fun Welcome(onConnect: () -> Unit, onDemo: () -> Unit) = StepScaffold(
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
         Image(painterResource(R.drawable.ic_brand), contentDescription = null, modifier = Modifier.size(40.dp))
         Spacer(Modifier.width(8.dp))
-        Text("Roshni", style = SolarType.title, color = c.ink)
+        Text(stringResource(R.string.app_name), style = SolarType.title, color = c.ink)
     }
     Text(
-        "Know the moment the mains go off.",
+        stringResource(R.string.welcome_headline),
         style = SolarType.headline,
         color = c.ink,
         modifier = Modifier.padding(top = 20.dp).semantics { heading() }
     )
     Text(
-        "Roshni watches your solar inverter around the clock, rings like an alarm clock when the mains fail, and tells you how long your battery will last.",
+        stringResource(R.string.welcome_body),
         style = SolarType.body,
         color = c.ink2,
         modifier = Modifier.padding(top = 8.dp)
@@ -198,9 +199,9 @@ private fun Welcome(onConnect: () -> Unit, onDemo: () -> Unit) = StepScaffold(
         )
     }
     Spacer(Modifier.height(16.dp))
-    Feature(Icons.Bell, "An alarm, not just a notification", "It shows over the lock screen and keeps ringing until you stop it.")
-    Feature(Icons.Battery, "Runtime that learns your battery", "It measures real discharges, not the number on the label.")
-    Feature(Icons.Clock, "Warns you before load-shedding", "It spots the schedule in your own history.")
+    Feature(Icons.Bell, stringResource(R.string.feature_alarm), stringResource(R.string.feature_alarm_sub))
+    Feature(Icons.Battery, stringResource(R.string.feature_runtime), stringResource(R.string.feature_runtime_sub))
+    Feature(Icons.Clock, stringResource(R.string.feature_warn), stringResource(R.string.feature_warn_sub))
 }
 
 @Composable
@@ -219,14 +220,14 @@ private fun Feature(icon: ImageVector, title: String, body: String) {
 @Composable
 private fun Connect(vm: MainViewModel, state: UiState, onBack: () -> Unit, onDone: () -> Unit) = StepScaffold(
     actions = {
-        if (state.account != null) PrimaryButton("Continue", onDone, Modifier.fillMaxWidth())
-        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+        if (state.account != null) PrimaryButton(stringResource(R.string.continue_), onDone, Modifier.fillMaxWidth())
+        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back)) }
     }
 ) {
     val c = Solar.colors
-    Text("Connect Solarman", style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
+    Text(stringResource(R.string.connect_solarman), style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
     Text(
-        "Readings come from Solarman's OpenAPI, the same cloud your inverter's Wi-Fi stick already reports to.",
+        stringResource(R.string.connect_solarman_body),
         style = SolarType.body,
         color = c.ink2,
         modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
@@ -235,7 +236,7 @@ private fun Connect(vm: MainViewModel, state: UiState, onBack: () -> Unit, onDon
     val existing = state.account
     if (existing != null) {
         ListGroup(null) {
-            SettingRow("Connected", subtitle = "${existing.email} · inverter ${existing.deviceSn}", icon = Icons.Check, iconTint = c.ok)
+            SettingRow(stringResource(R.string.connected), subtitle = stringResource(R.string.connected_sub, existing.email, existing.deviceSn), icon = Icons.Check, iconTint = c.ok)
         }
     } else {
         AccountForm(vm = vm, initial = null, onDone = onDone)
@@ -272,27 +273,25 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SolarField("App ID", appId, { appId = it }, keyboard = KeyboardType.Number)
-        SolarField("App secret", appSecret, { appSecret = it }, secret = true)
-        SolarField("Solarman email", email, { email = it }, keyboard = KeyboardType.Email)
-        SolarField(if (initial != null) "Password (leave blank to keep)" else "Solarman password", password, { password = it }, secret = true)
+        SolarField(stringResource(R.string.app_id), appId, { appId = it }, keyboard = KeyboardType.Number)
+        SolarField(stringResource(R.string.app_secret), appSecret, { appSecret = it }, secret = true)
+        SolarField(stringResource(R.string.solarman_email), email, { email = it }, keyboard = KeyboardType.Email)
+        SolarField(stringResource(if (initial != null) R.string.password_keep else R.string.solarman_password), password, { password = it }, secret = true)
 
         TextButton(onClick = { help = !help }, contentPadding = PaddingValues(horizontal = 0.dp)) {
             Icon(Icons.Info, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Where do I get an App ID?", style = SolarType.bodyStrong)
+            Text(stringResource(R.string.where_app_id), style = SolarType.bodyStrong)
         }
         AnimatedVisibility(help, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
             SCard(container = c.surfaceVariant) {
                 Text(
-                    "Solarman gives OpenAPI credentials (an App ID and App Secret) to plant owners who ask. " +
-                        "Contact Solarman support, say it's for monitoring your own plant, and include the email you sign in with. " +
-                        "Your email and password are the ones you already use in the Solarman app.",
+                    stringResource(R.string.app_id_help),
                     style = SolarType.caption,
                     color = c.ink2
                 )
                 TextButton(onClick = { system?.openUrl(OPENAPI_HELP) }, contentPadding = PaddingValues(horizontal = 0.dp)) {
-                    Text("Solarman's OpenAPI FAQ", style = SolarType.bodyStrong)
+                    Text(stringResource(R.string.openapi_faq), style = SolarType.bodyStrong)
                 }
             }
         }
@@ -300,9 +299,10 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
         error?.let { Text(it, style = SolarType.caption, color = c.down) }
 
         val list = devices
+        val noInverters = stringResource(R.string.no_inverters_listed)
         if (list == null) {
             PrimaryButton(
-                text = if (busy) "Signing in…" else "Sign in and find inverters",
+                text = stringResource(if (busy) R.string.signing_in else R.string.sign_in_find),
                 enabled = !busy && appId.isNotBlank() && appSecret.isNotBlank() && email.isNotBlank() && (password.isNotEmpty() || initial != null),
                 onClick = {
                     busy = true
@@ -312,7 +312,7 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
                             onSuccess = {
                                 devices = it
                                 chosen = it.firstOrNull()?.sn
-                                if (it.isEmpty()) error = "Signed in, but no inverters were listed. Enter the serial number below."
+                                if (it.isEmpty()) error = noInverters
                             },
                             onFailure = { error = it.message }
                         )
@@ -328,7 +328,7 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
             }
         } else {
             if (list.isNotEmpty()) {
-                ListGroup("Inverters on this account") {
+                ListGroup(stringResource(R.string.inverters_on_account)) {
                     list.forEach { device ->
                         val selected = chosen == device.sn
                         Row(
@@ -342,10 +342,10 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
                             Column(Modifier.weight(1f)) {
                                 Text(device.sn, style = SolarType.body, color = c.ink)
                                 Text(
-                                    device.station + when (device.online) {
-                                        true -> " · online"
-                                        false -> " · offline"
-                                        null -> ""
+                                    when (device.online) {
+                                        true -> stringResource(R.string.online_suffix, device.station)
+                                        false -> stringResource(R.string.offline_suffix, device.station)
+                                        null -> device.station
                                     },
                                     style = SolarType.caption,
                                     color = c.ink3
@@ -355,10 +355,10 @@ fun AccountForm(vm: MainViewModel, initial: Account?, onDone: () -> Unit) {
                     }
                 }
             }
-            SolarField("Or enter the serial number", manualSn, { manualSn = it; if (it.isNotBlank()) chosen = null })
+            SolarField(stringResource(R.string.enter_serial), manualSn, { manualSn = it; if (it.isNotBlank()) chosen = null })
             val sn = chosen ?: manualSn
             PrimaryButton(
-                "Use this inverter",
+                stringResource(R.string.use_inverter),
                 enabled = sn.isNotBlank(),
                 onClick = {
                     val label = devices?.firstOrNull { it.sn == sn }?.station ?: ""
@@ -376,19 +376,19 @@ private fun Permissions(vm: MainViewModel, system: SystemActions, onNext: () -> 
     val c = Solar.colors
     val p by vm.permissions.collectAsStateWithLifecycle()
 
-    StepScaffold(actions = { PrimaryButton(if (p.blocking == 0) "Continue" else "Continue anyway", onNext, Modifier.fillMaxWidth()) }) {
-        Text("Let it wake you", style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
+    StepScaffold(actions = { PrimaryButton(stringResource(if (p.blocking == 0) R.string.continue_ else R.string.continue_anyway), onNext, Modifier.fillMaxWidth()) }) {
+        Text(stringResource(R.string.let_it_wake_you), style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
         Text(
-            "Android tries hard to stop apps working in the background. These keep the alarm reliable.",
+            stringResource(R.string.perms_body),
             style = SolarType.body,
             color = c.ink2,
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
         )
         ListGroup(null) {
-            PermissionRow("Notifications", "So any alert can reach you", p.notifications, system::requestNotifications)
-            PermissionRow("Full-screen alarm", "Shows the alarm over a locked screen", p.fullScreen, system::openFullScreenSettings)
-            PermissionRow("Run in background", "Keeps checking while the phone sleeps", p.unrestricted, system::requestUnrestricted)
-            PermissionRow("Precise timing", "Optional. Checks land right after each upload.", p.exactAlarms, system::openExactAlarmSettings)
+            PermissionRow(stringResource(R.string.perm_notifications), stringResource(R.string.perm_notifications_ob), p.notifications, system::requestNotifications)
+            PermissionRow(stringResource(R.string.perm_full_screen), stringResource(R.string.perm_full_screen_ob), p.fullScreen, system::openFullScreenSettings)
+            PermissionRow(stringResource(R.string.perm_background), stringResource(R.string.perm_background_ob), p.unrestricted, system::requestUnrestricted)
+            PermissionRow(stringResource(R.string.perm_exact), stringResource(R.string.perm_exact_sub), p.exactAlarms, system::openExactAlarmSettings)
         }
     }
 }
@@ -397,26 +397,26 @@ private fun Permissions(vm: MainViewModel, system: SystemActions, onNext: () -> 
 private fun PermissionRow(title: String, subtitle: String, granted: Boolean, onGrant: () -> Unit) {
     val c = Solar.colors
     SettingRow(title, subtitle = subtitle, icon = if (granted) Icons.Check else Icons.Shield, iconTint = if (granted) c.ok else c.ink2, onClick = if (granted) null else onGrant) {
-        if (!granted) TextButton(onClick = onGrant) { Text("Allow", style = SolarType.bodyStrong) }
+        if (!granted) TextButton(onClick = onGrant) { Text(stringResource(R.string.allow), style = SolarType.bodyStrong) }
     }
 }
 
 @Composable
 private fun Ready(state: UiState, onStart: () -> Unit, onLater: () -> Unit) = StepScaffold(
     actions = {
-        PrimaryButton("Start watching", onStart, Modifier.fillMaxWidth())
-        TextButton(onClick = onLater, modifier = Modifier.fillMaxWidth()) { Text("Just look around") }
+        PrimaryButton(stringResource(R.string.start_watching), onStart, Modifier.fillMaxWidth())
+        TextButton(onClick = onLater, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.just_look_around)) }
     }
 ) {
     val c = Solar.colors
     Spacer(Modifier.height(32.dp))
     Icon(Icons.Check, null, tint = c.ok, modifier = Modifier.size(40.dp))
-    Text("You're set", style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 16.dp).semantics { heading() })
+    Text(stringResource(R.string.youre_set), style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 16.dp).semantics { heading() })
     Text(
         if (state.settings.demoMode) {
-            "You're looking at a simulated home with two weeks of history. Connect your own inverter any time in Settings."
+            stringResource(R.string.ready_demo)
         } else {
-            "Roshni runs quietly in the background with a small ongoing notification. A cut rings; everything else just notifies."
+            stringResource(R.string.ready_live)
         },
         style = SolarType.body,
         color = c.ink2,

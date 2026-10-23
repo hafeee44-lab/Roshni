@@ -2,6 +2,7 @@ package io.github.hafeee44lab.solargrid.ui
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -16,12 +17,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -41,8 +42,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.domain.StateRole
 import io.github.hafeee44lab.solargrid.ui.components.Icons
 import io.github.hafeee44lab.solargrid.ui.insights.InsightsScreen
@@ -66,10 +69,10 @@ interface SystemActions {
 
 val LocalSystem = staticCompositionLocalOf<SystemActions?> { null }
 
-enum class Tab(val label: String, val icon: ImageVector) {
-    HOME("Home", Icons.Home),
-    HISTORY("History", Icons.Insights),
-    SETTINGS("Settings", Icons.Settings)
+enum class Tab(@StringRes val label: Int, val icon: ImageVector) {
+    HOME(R.string.tab_home, Icons.Home),
+    HISTORY(R.string.history, Icons.Insights),
+    SETTINGS(R.string.settings, Icons.Settings)
 }
 
 enum class Page { DIAGNOSTICS }
@@ -159,7 +162,7 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit, alert: Boolean) {
                         Icon(tab.icon, contentDescription = null, modifier = Modifier.size(24.dp))
                     }
                 },
-                label = { Text(tab.label, style = SolarType.caption) },
+                label = { Text(stringResource(tab.label), style = SolarType.caption) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = c.brand,
                     selectedTextColor = c.brand,

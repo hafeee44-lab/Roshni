@@ -11,6 +11,7 @@ import android.service.quicksettings.TileService
 import io.github.hafeee44lab.solargrid.MainActivity
 import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.AppGraph
+import io.github.hafeee44lab.solargrid.data.phrases
 import io.github.hafeee44lab.solargrid.domain.StateRole
 import io.github.hafeee44lab.solargrid.domain.buildHomeUi
 
@@ -39,15 +40,15 @@ class StatusTile : TileService() {
         val tile = qsTile ?: return
         val graph = AppGraph.get(this)
         val settings = graph.settings.load()
-        val ui = buildHomeUi(graph.state(settings.profile).snapshot, settings.monitoring)
+        val ui = buildHomeUi(graph.state(settings.profile).snapshot, settings.monitoring, p = phrases())
 
         tile.label = when (ui.heroRole) {
-            StateRole.UP -> "Mains on"
-            StateRole.DOWN -> "Mains off"
+            StateRole.UP -> getString(R.string.mains_on)
+            StateRole.DOWN -> getString(R.string.mains_off)
             StateRole.NEUTRAL -> ui.heroState
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle = if (ui.soc != null) "Battery ${ui.socText}%" else "No data"
+            tile.subtitle = if (ui.soc != null) getString(R.string.tile_battery, ui.socText) else getString(R.string.no_data)
         }
         tile.icon = Icon.createWithResource(this, if (ui.heroRole == StateRole.DOWN) R.drawable.ic_stat_home_off else R.drawable.ic_stat_home)
         tile.state = when {

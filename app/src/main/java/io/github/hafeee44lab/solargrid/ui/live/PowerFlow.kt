@@ -1,5 +1,6 @@
 package io.github.hafeee44lab.solargrid.ui.live
 
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,18 +38,24 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.domain.FlowPowers
 import io.github.hafeee44lab.solargrid.domain.kw
 import io.github.hafeee44lab.solargrid.ui.components.Icons
 import io.github.hafeee44lab.solargrid.ui.theme.Solar
 import io.github.hafeee44lab.solargrid.ui.theme.SolarColors
 import io.github.hafeee44lab.solargrid.ui.theme.SolarType
+import java.util.Locale
 import kotlin.math.abs
 
 private const val FLOW_MIN_W = 50.0
@@ -69,6 +77,8 @@ fun PowerFlow(
     lowBatteryPercent: Int,
     modifier: Modifier = Modifier
 ) {
+    // Time and power flow read left to right in every language, including Urdu.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
     val c = Solar.colors
     val still = Solar.reduceMotion
     val phase by rememberInfiniteTransition(label = "flow").animateFloat(
@@ -96,16 +106,25 @@ fun PowerFlow(
         batteryTint to battery.coerceAtLeast(0.0)
     ).maxByOrNull { it.second }?.takeIf { it.second > FLOW_MIN_W }?.first ?: c.home
 
-    val description = buildString {
-        append("Power flow. ")
-        if (powers.solarW != null) append("Solar ${kw(solar)}. ")
+    val res = LocalResources.current
+    val description = buildList {
+        add(res.getString(R.string.flow_a11y_title))
+        if (powers.solarW != null) add(res.getString(R.string.flow_a11y_solar, kw(solar)))
         when {
-            gridDown == true -> append("Grid off. ")
-            powers.gridW != null -> append(if (grid >= 0) "Using ${kw(grid)} from the grid. " else "Sending ${kw(-grid)} to the grid. ")
+            gridDown == true -> add(res.getString(R.string.flow_a11y_grid_off))
+            powers.gridW != null -> add(if (grid >= 0) res.getString(R.string.flow_a11y_grid_in, kw(grid)) else res.getString(R.string.flow_a11y_grid_out, kw(-grid)))
         }
-        if (powers.batteryW != null) append(if (battery > FLOW_MIN_W) "Battery supplying ${kw(battery)}. " else if (battery < -FLOW_MIN_W) "Battery charging at ${kw(-battery)}. " else "Battery idle. ")
-        if (powers.loadW != null) append("Home using ${kw(load)}.")
-    }
+        if (powers.batteryW != null) {
+            add(
+                when {
+                    battery > FLOW_MIN_W -> res.getString(R.string.flow_a11y_battery_out, kw(battery))
+                    battery < -FLOW_MIN_W -> res.getString(R.string.flow_a11y_battery_in, kw(-battery))
+                    else -> res.getString(R.string.flow_a11y_battery_idle)
+                }
+            )
+        }
+        if (powers.loadW != null) add(res.getString(R.string.flow_a11y_home, kw(load)))
+    }.joinToString(" ")
 
     // Captions grow with the system font size; give them room instead of clipping.
     val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
@@ -154,31 +173,32 @@ fun PowerFlow(
         Node(homeAt, Icons.Home, c.home, active = homeLive)
         Node(gridAt, Icons.Pylon, if (gridDown == true) c.down else c.grid, active = gridLive, alarm = gridDown == true)
 
-        Caption(Spot(solarAt.x + 70.dp, solarAt.y - 20.dp), "Solar", if (powers.solarW == null) "—" else kw(solar), align = TextAlign.Start)
+        Caption(Spot(solarAt.x + 70.dp, solarAt.y - 20.dp), stringResource(R.string.solar), if (powers.solarW == null) "—" else kw(solar), align = TextAlign.Start)
         Caption(
             Spot(batteryAt.x, batteryAt.y + 32.dp),
             when {
-                battery > FLOW_MIN_W -> "Battery · out"
-                battery < -FLOW_MIN_W -> "Battery · in"
-                else -> "Battery"
+                battery > FLOW_MIN_W -> stringResource(R.string.battery_out)
+                battery < -FLOW_MIN_W -> stringResource(R.string.battery_in)
+                else -> stringResource(R.string.battery)
             },
             buildString {
-                append(soc?.let { "%.0f%%".format(it) } ?: "—")
+                append(soc?.let { "%.0f%%".format(Locale.US, it) } ?: "—")
                 if (batteryLive) append(" · ${kw(abs(battery))}")
             }
         )
-        Caption(Spot(homeAt.x, homeAt.y + 32.dp), "Home", if (powers.loadW == null) "—" else kw(load))
+        Caption(Spot(homeAt.x, homeAt.y + 32.dp), stringResource(R.string.home), if (powers.loadW == null) "—" else kw(load))
         Caption(
             Spot(gridAt.x, gridAt.y + 32.dp),
-            if (grid < -FLOW_MIN_W && gridDown != true) "Grid · sending" else "Grid",
+            stringResource(if (grid < -FLOW_MIN_W && gridDown != true) R.string.grid_sending else R.string.grid),
             when {
-                gridDown == true -> "Off"
+                gridDown == true -> stringResource(R.string.off)
                 powers.gridW == null -> "—"
                 else -> kw(abs(grid))
             },
             valueColor = if (gridDown == true) c.down else null
         )
     }
+}
 }
 
 private data class Spot(val x: Dp, val y: Dp) {

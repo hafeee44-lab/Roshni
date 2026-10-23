@@ -30,10 +30,10 @@ object Relay {
         if (!post(settings, text, key)) queue(prefs, text, key)
     }
 
-    suspend fun sendTest(settings: RelaySettings): Boolean =
+    suspend fun sendTest(settings: RelaySettings, message: String): Boolean =
         post(
             settings,
-            "✅ Solar Grid Monitor test message. If you can read this, outage alerts will land here.",
+            message,
             "test-${System.currentTimeMillis()}"
         )
 

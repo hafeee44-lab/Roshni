@@ -1,5 +1,6 @@
 package io.github.hafeee44lab.solargrid.data
 
+import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.domain.Event
 import io.github.hafeee44lab.solargrid.domain.EventKind
 import io.github.hafeee44lab.solargrid.domain.GridAnalyzer
@@ -89,7 +90,7 @@ class HistoryImport(private val graph: AppGraph) {
             db.addOutages(replay.outages)
             val cutoffDay = OutageLog.startOfDay(cutoff)
             db.addDays(replay.days.filterKeys { it < cutoffDay }.map { (day, energy) -> DayEnergy(day, energy) })
-            db.addEvents(listOf(Event(EventKind.INFO, now, "Imported $fetchedDays days of history from Solarman, with ${replay.outages.size} cuts")))
+            db.addEvents(listOf(Event(EventKind.INFO, now, graph.app.getString(R.string.import_event, fetchedDays, replay.outages.size))))
 
             prefs.edit()
                 .putLong(DONE_AT, now)
@@ -100,7 +101,7 @@ class HistoryImport(private val graph: AppGraph) {
                 .apply()
             return Outcome.Imported(fetchedDays, replay.outages.size)
         } catch (e: Exception) {
-            return fail("Couldn't reach Solarman: ${e.localizedMessage ?: e.javaClass.simpleName}", now)
+            return fail(graph.app.getString(R.string.cant_reach_solarman, e.localizedMessage ?: e.javaClass.simpleName), now)
         } finally {
             _progress.value = null
             running.set(false)

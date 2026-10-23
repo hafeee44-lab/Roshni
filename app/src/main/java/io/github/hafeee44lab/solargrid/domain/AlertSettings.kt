@@ -28,11 +28,10 @@ data class AlertSettings(
         /** The choices offered in Settings, in order; 0 means "until I stop it". */
         val RING_CHOICES = listOf(30, 60, 90, 120, 180, 300, 600, 0)
 
-        fun describeRing(seconds: Int): String = when {
-            seconds <= 0 -> "Until I stop it"
-            seconds < 60 -> "$seconds\u00A0s"
-            seconds % 60 == 0 -> "${seconds / 60}\u00A0min"
-            else -> "%.1f\u00A0min".format(seconds / 60.0)
+        fun describeRing(seconds: Int, p: Phrases = Phrases.English): String = when {
+            seconds <= 0 -> p.ringUntilStopped()
+            seconds < 60 -> p.ringSeconds(seconds)
+            else -> p.ringMinutes(seconds / 60.0)
         }
     }
 

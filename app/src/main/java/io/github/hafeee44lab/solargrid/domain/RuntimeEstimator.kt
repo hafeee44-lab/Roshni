@@ -140,14 +140,8 @@ object RuntimeEstimator {
         return (previous * 2 + observed) / 3
     }
 
-    fun describe(minutes: Int): String {
-        if (minutes <= 0) return "empty"
-        val hours = minutes / 60
-        val mins = minutes % 60
-        return when {
-            hours == 0 -> "${mins}m"
-            mins == 0 -> "${hours}h"
-            else -> "${hours}h ${mins}m"
-        }
+    fun describe(minutes: Int, p: Phrases = Phrases.English): String {
+        if (minutes <= 0) return p.batteryEmpty()
+        return p.hoursMinutes(minutes / 60, minutes % 60)
     }
 }

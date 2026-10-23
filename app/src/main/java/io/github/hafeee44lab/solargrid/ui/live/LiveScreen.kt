@@ -1,5 +1,6 @@
 package io.github.hafeee44lab.solargrid.ui.live
 
+import io.github.hafeee44lab.solargrid.ui.components.rememberDateFormat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -46,19 +47,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.domain.BatteryMode
 import io.github.hafeee44lab.solargrid.domain.HomeUi
 import io.github.hafeee44lab.solargrid.domain.OutageLog
 import io.github.hafeee44lab.solargrid.domain.OutagePredictor
 import io.github.hafeee44lab.solargrid.domain.RuntimeEstimator
 import io.github.hafeee44lab.solargrid.domain.StateRole
+import io.github.hafeee44lab.solargrid.domain.kw
 import io.github.hafeee44lab.solargrid.ui.MainViewModel
 import io.github.hafeee44lab.solargrid.ui.SystemActions
 import io.github.hafeee44lab.solargrid.ui.UiState
@@ -76,6 +81,7 @@ import io.github.hafeee44lab.solargrid.ui.components.StatusDot
 import io.github.hafeee44lab.solargrid.ui.components.Tag
 import io.github.hafeee44lab.solargrid.ui.components.minuteLabel
 import io.github.hafeee44lab.solargrid.ui.components.nb
+import io.github.hafeee44lab.solargrid.ui.components.phrases
 import io.github.hafeee44lab.solargrid.ui.screenPadding
 import io.github.hafeee44lab.solargrid.ui.theme.Solar
 import io.github.hafeee44lab.solargrid.ui.theme.SolarType
@@ -84,6 +90,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,15 +118,15 @@ fun LiveScreen(
             TopBar(state, onRefresh = vm::refresh)
 
             AnimatedVisibility(!state.settings.monitoring, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-                Notice(Icons.Warning, c.warn, "Monitoring is paused", "Nothing will alert you if the mains go.", "Turn on") { vm.setMonitoring(true) }
+                Notice(Icons.Warning, c.warn, stringResource(R.string.monitoring_paused), stringResource(R.string.monitoring_paused_body), stringResource(R.string.turn_on)) { vm.setMonitoring(true) }
             }
             AnimatedVisibility(state.settings.monitoring && permissions.blocking > 0, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
                 Notice(
                     Icons.Shield,
                     c.down,
-                    if (permissions.blocking == 1) "1 setting can stop alarms reaching you" else "${permissions.blocking} settings can stop alarms reaching you",
-                    "Fix it in Settings, under Reliability.",
-                    "Fix",
+                    pluralStringResource(R.plurals.settings_blocking, permissions.blocking, permissions.blocking),
+                    stringResource(R.string.fix_in_settings),
+                    stringResource(R.string.fix),
                     onOpenSettings
                 )
             }
@@ -127,7 +134,7 @@ fun LiveScreen(
             StatusCard(ui, state)
 
             SCard {
-                CardHeader("Power flow")
+                CardHeader(stringResource(R.string.power_flow))
                 Spacer(Modifier.height(4.dp))
                 PowerFlow(
                     powers = ui.powers,
@@ -142,7 +149,7 @@ fun LiveScreen(
             ForecastCard(state)
 
             SCard(onClick = onOpenHistory) {
-                CardHeader("Today", trailing = "History", chevron = true)
+                CardHeader(stringResource(R.string.today), trailing = stringResource(R.string.history), chevron = true)
                 Spacer(Modifier.height(12.dp))
                 val today = OutageLog.startOfDay(state.now)
                 DayChart(samples = state.todaySamples, outages = state.outages, from = today, to = today + OutageLog.DAY_MS, now = state.now)
@@ -170,9 +177,9 @@ private fun TopBar(state: UiState, onRefresh: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(
                 when {
-                    state.settings.demoMode -> "Demo home"
+                    state.settings.demoMode -> stringResource(R.string.demo_home)
                     !state.account?.label.isNullOrBlank() -> state.account!!.label
-                    else -> "My home"
+                    else -> stringResource(R.string.my_home)
                 },
                 style = SolarType.title,
                 color = c.ink,
@@ -181,16 +188,16 @@ private fun TopBar(state: UiState, onRefresh: () -> Unit) {
                 modifier = Modifier.semantics { heading() }
             )
             Text(
-                if (state.settings.monitoring) state.home.freshPrimary.replaceFirstChar { it.uppercase() } else "Not watching",
+                if (state.settings.monitoring) state.home.freshPrimary.replaceFirstChar { it.uppercase() } else stringResource(R.string.not_watching),
                 style = SolarType.caption,
                 color = if (state.home.freshAlert) c.warn else c.ink3,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
-        if (state.settings.demoMode) Tag("Demo", c.brand)
+        if (state.settings.demoMode) Tag(stringResource(R.string.demo), c.brand)
         IconButton(onClick = onRefresh) {
-            Icon(Icons.Refresh, contentDescription = "Check now", tint = c.ink2)
+            Icon(Icons.Refresh, contentDescription = stringResource(R.string.check_now), tint = c.ink2)
         }
     }
 }
@@ -220,7 +227,8 @@ private fun StatusCard(ui: HomeUi, state: UiState) {
     val c = Solar.colors
     val down = ui.heroRole == StateRole.DOWN
     val container by animateColorAsState(if (down) c.downContainer else c.surface, tween(600), label = "status")
-    val clock = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val clock = rememberDateFormat("HH:mm")
+    val p = phrases()
     val alerts = state.settings.alerts
     val batteryTint = c.battery(ui.soc, alerts.lowBatteryPercent)
     val dot = when (ui.heroRole) {
@@ -258,7 +266,7 @@ private fun StatusCard(ui: HomeUi, state: UiState) {
 
         if (down && ui.outageSince != null) {
             OutageClock(ui.outageSince, c.onDownContainer)
-            Text("without mains", style = SolarType.caption, color = c.onDownContainer)
+            Text(stringResource(R.string.without_mains), style = SolarType.caption, color = c.onDownContainer)
             Spacer(Modifier.height(16.dp))
         }
 
@@ -266,7 +274,7 @@ private fun StatusCard(ui: HomeUi, state: UiState) {
             Figure(
                 value = ui.socText,
                 unit = "%",
-                label = "Battery",
+                label = stringResource(R.string.battery),
                 style = if (down) SolarType.figureL else SolarType.figureXL,
                 color = if (ui.trusted) c.ink else c.ink3
             )
@@ -276,15 +284,15 @@ private fun StatusCard(ui: HomeUi, state: UiState) {
                 when {
                     ui.fullIn != null -> {
                         Text(ui.fullIn.nb(), style = SolarType.figure, color = c.ink)
-                        Text("to full${ui.fullAt?.let { ", about ${clock.format(Date(it))}" } ?: ""}", style = SolarType.caption, color = c.ink3)
+                        Text(ui.fullAt?.let { stringResource(R.string.to_full_about, clock.format(Date(it))) } ?: stringResource(R.string.to_full), style = SolarType.caption, color = c.ink3)
                     }
                     runtime != null -> {
                         Text(runtime.nb(), style = SolarType.figure, color = if (down) c.onDownContainer else c.ink)
                         Text(
                             when {
-                                down && ui.batteryMode == BatteryMode.DISCHARGING -> ui.emptyAt?.let { "left, until about ${clock.format(Date(it))}" } ?: "left"
-                                down -> "left once solar drops"
-                                else -> "backup if the mains go"
+                                down && ui.batteryMode == BatteryMode.DISCHARGING -> ui.emptyAt?.let { stringResource(R.string.left_until, clock.format(Date(it))) } ?: stringResource(R.string.left)
+                                down -> stringResource(R.string.left_once_solar_drops)
+                                else -> stringResource(R.string.backup_if_mains_go)
                             },
                             style = SolarType.caption,
                             color = if (down) c.onDownContainer else c.ink3
@@ -298,7 +306,7 @@ private fun StatusCard(ui: HomeUi, state: UiState) {
         BatteryMeter(ui.soc, if (ui.trusted) batteryTint else c.ink3)
         Spacer(Modifier.height(10.dp))
         Text(
-            batteryLine(ui),
+            batteryLine(ui, state),
             style = SolarType.caption,
             color = if (down) c.onDownContainer else c.ink3
         )
@@ -309,7 +317,12 @@ private fun StatusCard(ui: HomeUi, state: UiState) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(c.onDownContainer.copy(alpha = 0.15f)))
             Spacer(Modifier.height(12.dp))
             Text(
-                "Cut back to ${"%.1f kW".format(stretch.loadWatts / 1000).nb()}, your usual low use, and it lasts until about ${clock.format(Date(state.now + stretch.minutes * 60_000L))} (${RuntimeEstimator.describe(stretch.minutes).nb()}).",
+                stringResource(
+                    R.string.stretch,
+                    "%.1f kW".format(Locale.US, stretch.loadWatts / 1000).nb(),
+                    clock.format(Date(state.now + stretch.minutes * 60_000L)),
+                    RuntimeEstimator.describe(stretch.minutes, p).nb()
+                ),
                 style = SolarType.body,
                 color = c.onDownContainer
             )
@@ -317,11 +330,15 @@ private fun StatusCard(ui: HomeUi, state: UiState) {
     }
 }
 
-private fun batteryLine(ui: HomeUi): String = when (ui.batteryMode) {
-    BatteryMode.CHARGING -> "Charging at ${ui.batteryLabel.removeSuffix(" in")}"
-    BatteryMode.DISCHARGING -> "Supplying the house at ${ui.batteryLabel.removeSuffix(" out")}"
-    BatteryMode.IDLE -> if (ui.heroRole == StateRole.DOWN) "Solar is carrying the house for now" else "Battery is resting"
-    BatteryMode.UNKNOWN -> ui.heroSub
+@Composable
+private fun batteryLine(ui: HomeUi, state: UiState): String {
+    val flow = kw(state.snapshot.batteryPowerW?.let { abs(it) })
+    return when (ui.batteryMode) {
+        BatteryMode.CHARGING -> stringResource(R.string.charging_at, flow)
+        BatteryMode.DISCHARGING -> stringResource(R.string.supplying_at, flow)
+        BatteryMode.IDLE -> stringResource(if (ui.heroRole == StateRole.DOWN) R.string.solar_carrying else R.string.battery_resting)
+        BatteryMode.UNKNOWN -> ui.heroSub
+    }
 }
 
 /** The outage, counting up live. */
@@ -348,20 +365,16 @@ private fun TodayTiles(ui: HomeUi, state: UiState) {
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Tile(today.producedKwh.kwh(), "kWh", "Solar made", Icons.Sun, c.solar, Modifier.weight(1f))
-            Tile(today.consumedKwh.kwh(), "kWh", "Home used", Icons.Home, c.home, Modifier.weight(1f))
+            Tile(today.producedKwh.kwh(), "kWh", stringResource(R.string.solar_made), Icons.Sun, c.solar, Modifier.weight(1f))
+            Tile(today.consumedKwh.kwh(), "kWh", stringResource(R.string.home_used), Icons.Home, c.home, Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Tile(today.boughtKwh.kwh(), "kWh", "From grid", Icons.Pylon, c.grid, Modifier.weight(1f))
+            Tile(today.boughtKwh.kwh(), "kWh", stringResource(R.string.from_grid), Icons.Pylon, c.grid, Modifier.weight(1f))
             val (cutValue, cutUnit) = compactDuration(if (cuts.isEmpty()) 0L else cutMs)
             Tile(
                 cutValue,
                 cutUnit,
-                when (cuts.size) {
-                    0 -> "No cuts today"
-                    1 -> "1 cut today"
-                    else -> "${cuts.size} cuts today"
-                },
+                if (cuts.isEmpty()) stringResource(R.string.no_cuts_today) else pluralStringResource(R.plurals.cuts_today, cuts.size, cuts.size),
                 Icons.Live,
                 if (cuts.isEmpty()) c.ok else c.down,
                 Modifier.weight(1f)
@@ -371,14 +384,14 @@ private fun TodayTiles(ui: HomeUi, state: UiState) {
             val fill by animateFloatAsState(share.toFloat(), tween(800, easing = FastOutSlowInEasing), label = "self")
             SCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Self-powered today", style = SolarType.body, color = c.ink, modifier = Modifier.weight(1f))
-                    Text("%.0f%%".format(share * 100), style = SolarType.figureS, color = c.ink)
+                    Text(stringResource(R.string.self_powered_today), style = SolarType.body, color = c.ink, modifier = Modifier.weight(1f))
+                    Text("%.0f%%".format(Locale.US, share * 100), style = SolarType.figureS, color = c.ink)
                 }
                 Spacer(Modifier.height(8.dp))
                 Box(Modifier.fillMaxWidth().height(6.dp).clip(CircleShape).background(c.surfaceVariant)) {
                     Box(Modifier.fillMaxWidth(fill).height(6.dp).clip(CircleShape).background(c.ok))
                 }
-                Text("Share of today's use that didn't come from the grid", style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 6.dp))
+                Text(stringResource(R.string.self_powered_note), style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 6.dp))
             }
         }
     }
@@ -394,28 +407,31 @@ private fun Tile(value: String, unit: String?, label: String, icon: ImageVector,
     }
 }
 
-private fun Double?.kwh(): String = this?.let { "%.1f".format(it) } ?: "—"
+private fun Double?.kwh(): String = this?.let { "%.1f".format(Locale.US, it) } ?: "—"
 
 /** "since 21:30" today, "since yesterday 21:30", "since Thu 21:30" this week, else "since 12 Oct". */
+@Composable
 private fun sinceLabel(at: Long, now: Long, clock: SimpleDateFormat): String {
     val today = OutageLog.startOfDay(now)
     val time = clock.format(Date(at))
     return when {
-        at >= today -> "since $time"
-        at >= OutageLog.startOfDay(today - 1) -> "since yesterday $time"
-        at >= today - 6 * OutageLog.DAY_MS -> "since ${SimpleDateFormat("EEE", Locale.getDefault()).format(Date(at))} $time"
-        else -> "since ${SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(at))}"
+        at >= today -> stringResource(R.string.since_time, time)
+        at >= OutageLog.startOfDay(today - 1) -> stringResource(R.string.since_yesterday, time)
+        at >= today - 6 * OutageLog.DAY_MS -> stringResource(R.string.since_day, rememberDateFormat("EEE").format(Date(at)), time)
+        else -> stringResource(R.string.since_time, rememberDateFormat("d MMM").format(Date(at)))
     }
 }
 
 /** Short value + unit for a half-width tile, where "under a minute" would not fit. */
+@Composable
 private fun compactDuration(ms: Long): Pair<String, String?> {
     val minutes = ms / 60_000L
+    val unit = stringResource(R.string.unit_min)
     return when {
-        ms <= 0L -> "0" to "min"
-        minutes < 1 -> "<1" to "min"
-        minutes < 60 -> "$minutes" to "min"
-        else -> "${minutes / 60}h\u00A0${minutes % 60}m" to null
+        ms <= 0L -> "0" to unit
+        minutes < 1 -> "<1" to unit
+        minutes < 60 -> "$minutes" to unit
+        else -> stringResource(R.string.duration_hm_compact, minutes / 60, minutes % 60).nb() to null
     }
 }
 
@@ -427,15 +443,15 @@ private fun ForecastCard(state: UiState) {
     val nowMinute = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
 
     SCard {
-        CardHeader("Next likely cut")
+        CardHeader(stringResource(R.string.next_likely_cut))
         Spacer(Modifier.height(8.dp))
         if (prediction == null) {
             val days = state.observedSince?.let { ((state.now - it) / OutageLog.DAY_MS).toInt() } ?: 0
             Text(
                 if (days < OutagePredictor.MIN_DAYS_OBSERVED) {
-                    "Learning your schedule — forecasts start after ${OutagePredictor.MIN_DAYS_OBSERVED} days of history ($days so far)."
+                    stringResource(R.string.learning_schedule, OutagePredictor.MIN_DAYS_OBSERVED, days)
                 } else {
-                    "No regular pattern in the last two weeks."
+                    stringResource(R.string.no_pattern)
                 },
                 style = SolarType.body,
                 color = c.ink2
@@ -444,19 +460,23 @@ private fun ForecastCard(state: UiState) {
             return@SCard
         }
 
-        val clock = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(prediction.startsAt))
+        val clock = rememberDateFormat("HH:mm").format(Date(prediction.startsAt))
         val inMin = ((prediction.startsAt - state.now) / 60_000L).toInt().coerceAtLeast(1)
         val typical = prediction.slot.typicalDurationMs
         val runtime = state.snapshot.runtimeMinutes
+        val p = phrases()
 
         Row(verticalAlignment = Alignment.Bottom) {
             Text("~$clock", style = SolarType.figureL, color = c.ink)
             Spacer(Modifier.width(10.dp))
-            Text("in ${RuntimeEstimator.describe(inMin).nb()}", style = SolarType.body, color = c.ink2, modifier = Modifier.padding(bottom = 5.dp))
+            Text(stringResource(R.string.in_duration, RuntimeEstimator.describe(inMin, p).nb()), style = SolarType.body, color = c.ink2, modifier = Modifier.padding(bottom = 5.dp))
         }
         Text(
-            "Went off near this time on ${prediction.slot.daysSeen} of the last ${prediction.slot.daysObserved} days" +
-                (typical?.let { ", usually for ${OutageLog.describeDuration(it).nb()}" } ?: "") + ".",
+            if (typical != null) {
+                stringResource(R.string.went_off_near_usually, prediction.slot.daysSeen, prediction.slot.daysObserved, OutageLog.describeDuration(typical, p).nb())
+            } else {
+                stringResource(R.string.went_off_near, prediction.slot.daysSeen, prediction.slot.daysObserved)
+            },
             style = SolarType.caption,
             color = c.ink3,
             modifier = Modifier.padding(top = 4.dp)
@@ -464,7 +484,7 @@ private fun ForecastCard(state: UiState) {
         if (runtime != null && typical != null && state.home.trusted) {
             val covers = runtime * 60_000L >= typical
             Tag(
-                if (covers) "Battery should cover it" else "Battery may run short at this load",
+                stringResource(if (covers) R.string.battery_should_cover else R.string.battery_may_run_short),
                 if (covers) c.ok else c.warn,
                 icon = if (covers) Icons.Check else Icons.Warning,
                 modifier = Modifier.padding(top = 10.dp)
@@ -472,7 +492,7 @@ private fun ForecastCard(state: UiState) {
         }
         ScheduleRibbon(state.schedule, nowMinute, prediction.slot.minuteOfDay, Modifier.padding(top = 14.dp))
         if (state.schedule.size > 1) {
-            Text("Usual times: " + state.schedule.joinToString(" · ") { minuteLabel(it.minuteOfDay) }, style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 6.dp))
+            Text(stringResource(R.string.usual_times, state.schedule.joinToString(" · ") { minuteLabel(it.minuteOfDay) }), style = SolarType.caption, color = c.ink3, modifier = Modifier.padding(top = 6.dp))
         }
     }
 }
@@ -481,20 +501,20 @@ private fun ForecastCard(state: UiState) {
 private fun GridCard(ui: HomeUi) {
     val c = Solar.colors
     SCard(padding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)) {
-        CardHeader("Grid and inverter", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-        Fact("Grid voltage", if (ui.voltUnit.isEmpty()) "—" else "${ui.voltText} V")
-        Fact("Frequency", ui.frequencyText ?: "—")
+        CardHeader(stringResource(R.string.grid_and_inverter), modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        Fact(stringResource(R.string.grid_voltage), if (ui.voltUnit.isEmpty()) "—" else "${ui.voltText} V")
+        Fact(stringResource(R.string.frequency), ui.frequencyText ?: "—")
         if (ui.phases.isNotEmpty()) {
             Fact(
-                "Phases",
+                stringResource(R.string.phases),
                 ui.phases.joinToString("  ") { "${it.label} ${it.volts}" },
                 note = ui.phaseNote,
                 alert = ui.phaseNote != null
             )
         }
-        Fact("Inverter", ui.inverterTemp ?: "—", note = if (ui.inverterTempHot) "Running hot" else null, alert = ui.inverterTempHot)
-        Fact("Battery temperature", ui.batteryTemp ?: "—")
-        Fact("Decided by", ui.basis, last = true)
+        Fact(stringResource(R.string.inverter), ui.inverterTemp ?: "—", note = if (ui.inverterTempHot) stringResource(R.string.running_hot) else null, alert = ui.inverterTempHot)
+        Fact(stringResource(R.string.battery_temperature), ui.batteryTemp ?: "—")
+        Fact(stringResource(R.string.decided_by), ui.basis, last = true)
     }
 }
 
@@ -517,16 +537,16 @@ private fun Fact(label: String, value: String, note: String? = null, alert: Bool
 private fun DemoCard(vm: MainViewModel) {
     val c = Solar.colors
     SCard {
-        CardHeader("Demo controls")
+        CardHeader(stringResource(R.string.demo_controls))
         Text(
-            "Make the simulated grid fail to try the alarm, the outage notification and the outage clock.",
+            stringResource(R.string.demo_controls_body),
             style = SolarType.caption,
             color = c.ink3,
             modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SecondaryButton("Simulate outage", onClick = { vm.simulateOutage() }, color = c.down, modifier = Modifier.weight(1f))
-            SecondaryButton("Restore", onClick = { vm.endSimulatedOutage() }, modifier = Modifier.weight(1f))
+            SecondaryButton(stringResource(R.string.simulate_outage), onClick = { vm.simulateOutage() }, color = c.down, modifier = Modifier.weight(1f))
+            SecondaryButton(stringResource(R.string.restore), onClick = { vm.endSimulatedOutage() }, modifier = Modifier.weight(1f))
         }
     }
 }
