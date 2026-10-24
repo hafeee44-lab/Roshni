@@ -10,25 +10,19 @@ https://github.com/hafeee44-lab/Roshni/blob/main/docs/PRIVACY.md
 
 ---
 
-## 1. App access (Policy → App content → App access)
+## 1. Sign in details (Policy → App content → Sign in details, formerly "App access")
 
-Choose **All or some functionality is restricted** and add one set of instructions:
+Answer **Yes** to "Is any part of your app restricted?" (the app has cloud sign-in screens), then **Add instructions**:
 
 - **Name:** Demo mode (no login needed)
 - **Username / password:** leave empty
-- **Any other information:**
+- **Any other information** (max 500 characters; this is 454):
 
 ```
-Roshni reads the user's own hybrid solar inverter, either directly from its Wi-Fi logger on the home network or through the inverter maker's cloud (Solarman, Growatt, Huawei FusionSolar, SolisCloud or DESS Monitor) with the user's own account. Reviewers need neither: every feature works in demo mode, which simulates an inverter and two weeks of history on the device.
-
-1. Open the app. On the first screen tap "Try with demo data".
-2. On "Let it wake you", tap Allow on each row (or "Continue anyway"), then Continue.
-3. Tap "Start watching". The foreground service starts and an ongoing status notification appears.
-4. On Home, scroll to the bottom card, "Demo controls", and tap "Simulate outage". Within a few seconds the outage alarm rings and shows full screen over the lock screen (or as a heads-up notification if full-screen notifications are off). Slide or tap "Stop alarm" to stop it, and tap "Restore" to bring the simulated mains back.
-5. Settings → "Test the alarm" rings it once on demand. Settings → Reliability shows each permission's state and links to the system settings page for it.
-
-Demo mode sends no network traffic.
+No account needed. On the first screen tap "Try with demo data": it simulates an inverter and 2 weeks of history, offline. Allow the permissions, tap Continue, then "Start watching". On Home, scroll to "Demo controls" and tap "Simulate outage": the outage alarm rings full screen within seconds. Slide to stop it, then tap "Restore". Settings > "Test the alarm" rings it on demand. Real use needs the user's own inverter logger or inverter-cloud account.
 ```
+
+- Keep **"Sign in details in this declaration provide full access…"** ticked: demo mode reaches every feature and there is no paid content.
 
 ---
 
