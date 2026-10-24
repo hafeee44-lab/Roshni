@@ -122,4 +122,25 @@ class PollPolicyTest {
         val perDay = (24 * 60 * 60_000L) / next(learned = 300_000L, sinceUpload = 0L)
         assertTrue("expected ≤ 300 calls a day, got $perDay", perDay <= 300)
     }
+
+    @Test
+    fun localPollsEveryMinuteWhenAllIsQuiet() {
+        assertEquals(PollPolicy.LOCAL_IDLE_MS, PollPolicy.nextLocalDelayMs(gridDown = false, msSinceStateChange = Long.MAX_VALUE, errorStreak = 0))
+    }
+
+    @Test
+    fun localPollsEveryThirtySecondsAroundACut() {
+        assertEquals(PollPolicy.LOCAL_MIN_MS, PollPolicy.nextLocalDelayMs(gridDown = true, msSinceStateChange = Long.MAX_VALUE, errorStreak = 0))
+        assertEquals(PollPolicy.LOCAL_MIN_MS, PollPolicy.nextLocalDelayMs(gridDown = false, msSinceStateChange = 60_000L, errorStreak = 0))
+    }
+
+    @Test
+    fun localNeverPollsFasterThanThirtySecondsAndBacksOffWhenUnreachable() {
+        assertEquals(30_000L, PollPolicy.nextLocalDelayMs(null, Long.MAX_VALUE, errorStreak = 1))
+        assertEquals(60_000L, PollPolicy.nextLocalDelayMs(null, Long.MAX_VALUE, errorStreak = 2))
+        assertEquals(PollPolicy.LOCAL_ERROR_MAX_MS, PollPolicy.nextLocalDelayMs(true, 0L, errorStreak = 20))
+        for (streak in 0..20) {
+            assertTrue(PollPolicy.nextLocalDelayMs(true, 0L, streak) >= PollPolicy.LOCAL_MIN_MS)
+        }
+    }
 }

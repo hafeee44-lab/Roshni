@@ -250,7 +250,6 @@
     <string name="feature_warn_sub">آپ کے اپنے ریکارڈ سے شیڈول پہچانتا ہے۔</string>
     <string name="continue_">جاری رکھیں</string>
     <string name="back">واپس</string>
-    <string name="connect_solarman">سولرمین جوڑیں</string>
     <string name="connect_solarman_body">ریڈنگز سولرمین OpenAPI سے آتی ہیں، اسی کلاؤڈ سے جہاں آپ کے انورٹر کی وائی فائی اسٹک پہلے ہی ڈیٹا بھیجتی ہے۔</string>
     <string name="connected">منسلک</string>
     <string name="connected_sub">%1$s · انورٹر %2$s</string>
@@ -351,4 +350,27 @@
     <string name="cant_reach_solarman">سولرمین تک رسائی نہیں ہو سکی: %1$s</string>
     <string name="export_subject">روشنی: لوڈ شیڈنگ کا ریکارڈ</string>
     <string name="relay_test">✅ روشنی کا آزمائشی پیغام۔ اگر یہ نظر آ رہا ہے تو بجلی جانے کے الرٹس یہیں آئیں گے۔</string>
+    <!-- Local network data source -->
+    <string name="source_cloud">سولرمین کلاؤڈ</string>
+    <string name="source_local">مقامی نیٹ ورک</string>
+    <string name="connect_local_body">انورٹر کی ریڈنگ گھر کے وائی فائی پر سیدھی اس کی سولرمین وائی فائی اسٹک سے لیں۔ نہ App ID چاہیے، نہ secret، نہ کلاؤڈ کی حد۔</string>
+    <string name="logger_ip">لاگر کا IP ایڈریس</string>
+    <string name="logger_serial">لاگر کا سیریل نمبر</string>
+    <string name="find_logger">لاگر تلاش کریں</string>
+    <string name="finding_logger">اس وائی فائی پر تلاش ہو رہی ہے…</string>
+    <string name="loggers_found">اس وائی فائی پر لاگر</string>
+    <string name="logger_found_row">%1$s · سیریل %2$s</string>
+    <string name="no_logger_found">کسی لاگر نے جواب نہیں دیا۔ اپنے راؤٹر کی منسلک ڈیوائسز کی فہرست سے اس کا IP ایڈریس لکھیں۔</string>
+    <string name="logger_where">یہ کہاں ملیں گے؟</string>
+    <string name="logger_help">سیریل نمبر انورٹر میں لگی وائی فائی اسٹک کے لیبل پر ہوتا ہے، عموماً 10 ہندسے۔ یہ انورٹر کا اپنا سیریل نہیں۔ IP ایڈریس راؤٹر کی منسلک ڈیوائسز کی فہرست میں ملے گا؛ وہیں اسے مستقل کر دیں تاکہ بدلے نہیں۔ یہ فون اسی وائی فائی پر ہونا چاہیے، اور بجلی جانے پر پتا چلنے کے لیے راؤٹر کو بیک اپ بجلی ملنی چاہیے۔</string>
+    <string name="connect_logger">جوڑیں</string>
+    <string name="connecting_logger">جوڑا جا رہا ہے…</string>
+    <string name="save_anyway">پھر بھی محفوظ کریں</string>
+    <string name="invalid_ip">IP ایڈریس اس طرح لکھیں: 192.168.1.40</string>
+    <string name="invalid_serial">سیریل صرف ہندسوں میں ہے، زیادہ سے زیادہ 10</string>
+    <string name="logger_connected_sub">%1$s · لاگر %2$s</string>
+    <string name="set_up_logger">مقامی لاگر سیٹ کریں</string>
+    <string name="forget_logger">لاگر ہٹائیں</string>
+    <string name="local_no_quota">وائی فائی پر تقریباً ہر منٹ ریڈنگ؛ کلاؤڈ کی حد استعمال نہیں ہوتی</string>
+    <string name="use_source">%1$s استعمال کریں</string>
 </resources>

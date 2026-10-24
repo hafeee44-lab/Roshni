@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.Account
+import io.github.hafeee44lab.solargrid.data.DataSource
 import io.github.hafeee44lab.solargrid.data.DiscoveredDevice
 import io.github.hafeee44lab.solargrid.domain.FlowPowers
 import io.github.hafeee44lab.solargrid.ui.LocalSystem
@@ -76,6 +77,7 @@ import io.github.hafeee44lab.solargrid.ui.components.ListGroup
 import io.github.hafeee44lab.solargrid.ui.components.PrimaryButton
 import io.github.hafeee44lab.solargrid.ui.components.SCard
 import io.github.hafeee44lab.solargrid.ui.components.SecondaryButton
+import io.github.hafeee44lab.solargrid.ui.components.Segmented
 import io.github.hafeee44lab.solargrid.ui.components.SettingRow
 import io.github.hafeee44lab.solargrid.ui.live.PowerFlow
 import io.github.hafeee44lab.solargrid.ui.settings.SolarField
@@ -218,29 +220,66 @@ private fun Feature(icon: ImageVector, title: String, body: String) {
 }
 
 @Composable
-private fun Connect(vm: MainViewModel, state: UiState, onBack: () -> Unit, onDone: () -> Unit) = StepScaffold(
-    actions = {
-        if (state.account != null) PrimaryButton(stringResource(R.string.continue_), onDone, Modifier.fillMaxWidth())
-        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back)) }
+private fun Connect(vm: MainViewModel, state: UiState, onBack: () -> Unit, onDone: () -> Unit) {
+    var source by rememberSaveable { mutableStateOf(state.settings.source) }
+    val ready = when (source) {
+        DataSource.CLOUD -> state.account != null
+        DataSource.LOCAL -> state.logger != null
     }
-) {
-    val c = Solar.colors
-    Text(stringResource(R.string.connect_solarman), style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
-    Text(
-        stringResource(R.string.connect_solarman_body),
-        style = SolarType.body,
-        color = c.ink2,
-        modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
-    )
 
-    val existing = state.account
-    if (existing != null) {
-        ListGroup(null) {
-            SettingRow(stringResource(R.string.connected), subtitle = stringResource(R.string.connected_sub, existing.email, existing.deviceSn), icon = Icons.Check, iconTint = c.ok)
+    StepScaffold(
+        actions = {
+            if (ready) PrimaryButton(stringResource(R.string.continue_), { vm.useSource(source); onDone() }, Modifier.fillMaxWidth())
+            TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back)) }
         }
-    } else {
-        AccountForm(vm = vm, initial = null, onDone = onDone)
+    ) {
+        val c = Solar.colors
+        Text(stringResource(R.string.connect_inverter), style = SolarType.headline, color = c.ink, modifier = Modifier.padding(top = 8.dp).semantics { heading() })
+        SourcePicker(source, { source = it }, Modifier.padding(top = 12.dp, bottom = 16.dp))
+
+        when (source) {
+            DataSource.CLOUD -> {
+                Text(
+                    stringResource(R.string.connect_solarman_body),
+                    style = SolarType.body,
+                    color = c.ink2,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                val existing = state.account
+                if (existing != null) {
+                    ListGroup(null) {
+                        SettingRow(stringResource(R.string.connected), subtitle = stringResource(R.string.connected_sub, existing.email, existing.deviceSn), icon = Icons.Check, iconTint = c.ok)
+                    }
+                } else {
+                    AccountForm(vm = vm, initial = null, onDone = onDone)
+                }
+            }
+            DataSource.LOCAL -> {
+                val logger = state.logger
+                if (logger != null) {
+                    ListGroup(null) {
+                        SettingRow(stringResource(R.string.connected), subtitle = stringResource(R.string.logger_connected_sub, logger.host, logger.serial.toString()), icon = Icons.Check, iconTint = c.ok)
+                    }
+                } else {
+                    LoggerForm(vm = vm, initial = null, onDone = onDone)
+                }
+            }
+        }
     }
+}
+
+/** Solarman's cloud, or the logger itself on the home Wi-Fi. Shared by onboarding and Settings. */
+@Composable
+fun SourcePicker(selected: DataSource, onSelect: (DataSource) -> Unit, modifier: Modifier = Modifier) {
+    Segmented(
+        options = listOf(
+            DataSource.CLOUD to stringResource(R.string.source_cloud),
+            DataSource.LOCAL to stringResource(R.string.source_local)
+        ),
+        selected = selected,
+        onSelect = onSelect,
+        modifier = modifier
+    )
 }
 
 /**

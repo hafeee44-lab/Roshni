@@ -31,7 +31,7 @@ class HistoryImport(private val graph: AppGraph) {
 
     suspend fun runIfDue(force: Boolean = false): Outcome {
         val settings = graph.settings.load()
-        if (settings.demoMode) return Outcome.Skipped
+        if (settings.demoMode || settings.source != DataSource.CLOUD) return Outcome.Skipped
         val account = graph.accounts.load() ?: return Outcome.Skipped
         val state = graph.state(Profile.LIVE)
         val prefs = state.prefs

@@ -16,14 +16,20 @@ import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.Account
 import io.github.hafeee44lab.solargrid.data.AppGraph
 import io.github.hafeee44lab.solargrid.data.AppSettings
+import io.github.hafeee44lab.solargrid.data.DataSource
 import io.github.hafeee44lab.solargrid.data.DayEnergy
 import io.github.hafeee44lab.solargrid.data.DiscoveredDevice
+import io.github.hafeee44lab.solargrid.data.FetchResult
 import io.github.hafeee44lab.solargrid.data.HistoryImport
 import io.github.hafeee44lab.solargrid.data.Profile
 import io.github.hafeee44lab.solargrid.data.Sample
 import io.github.hafeee44lab.solargrid.data.SolarSnapshot
 import io.github.hafeee44lab.solargrid.data.SolarmanSource
 import io.github.hafeee44lab.solargrid.data.changes
+import io.github.hafeee44lab.solargrid.data.local.FoundLogger
+import io.github.hafeee44lab.solargrid.data.local.LocalLogger
+import io.github.hafeee44lab.solargrid.data.local.LocalSource
+import io.github.hafeee44lab.solargrid.data.local.LoggerDiscovery
 import io.github.hafeee44lab.solargrid.data.phrases
 import io.github.hafeee44lab.solargrid.domain.Event
 import io.github.hafeee44lab.solargrid.domain.HomeUi
@@ -76,6 +82,7 @@ data class UiState(
     val loaded: Boolean = false,
     val settings: AppSettings = AppSettings(),
     val account: Account? = null,
+    val logger: LocalLogger? = null,
     val snapshot: SolarSnapshot = SolarSnapshot(),
     val home: HomeUi = buildHomeUi(SolarSnapshot(), false),
     val dump: String = "",
@@ -142,9 +149,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private val settingsFlow: Flow<Pair<AppSettings, Account?>> =
-        combine(graph.settings.prefs.changes(), graph.app.getSharedPreferences("account", 0).changes()) { _, _ ->
-            graph.settings.load() to graph.accounts.load()
+    private data class Sources(val settings: AppSettings, val account: Account?, val logger: LocalLogger?)
+
+    private val settingsFlow: Flow<Sources> =
+        combine(
+            graph.settings.prefs.changes(),
+            graph.app.getSharedPreferences("account", 0).changes(),
+            graph.loggers.prefs.changes()
+        ) { _, _, _ ->
+            Sources(graph.settings.load(), graph.accounts.load(), graph.loggers.load())
         }.flowOn(Dispatchers.IO)
 
     private fun profileData(profile: Profile): Flow<ProfileData> {
@@ -173,7 +186,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     val state: StateFlow<UiState> = settingsFlow
-        .flatMapLatest { (settings, account) ->
+        .flatMapLatest { (settings, account, logger) ->
             combine(profileData(settings.profile), ticker) { data, _ ->
                 // Read the clock here, not from the ticker: a reading newer than the last tick
                 // would otherwise come out with a negative age.
@@ -183,6 +196,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     loaded = true,
                     settings = settings,
                     account = account,
+                    logger = logger,
                     snapshot = data.snapshot,
                     home = buildHomeUi(data.snapshot, settings.monitoring, now, graph.app.phrases()),
                     dump = data.dump,
@@ -282,7 +296,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             graph.accounts.save(account)
             graph.state(Profile.LIVE).token = null
-            graph.settings.update { it.copy(demoMode = false) }
+            graph.settings.update { it.copy(demoMode = false, source = DataSource.CLOUD) }
             withContext(Dispatchers.Main) { refresh() }
         }
     }
@@ -292,6 +306,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             graph.accounts.clear()
             graph.state(Profile.LIVE).clear()
             withContext(Dispatchers.Main) { setMonitoring(false) }
+        }
+    }
+
+    /** One trial read, so setup can say straight away whether the logger answers. */
+    suspend fun testLogger(logger: LocalLogger): FetchResult =
+        withContext(Dispatchers.IO) { LocalSource(logger).fetch() }
+
+    suspend fun scanForLoggers(): List<FoundLogger> =
+        try {
+            LoggerDiscovery.scan(graph.app)
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+    fun saveLogger(logger: LocalLogger) {
+        viewModelScope.launch(Dispatchers.IO) {
+            graph.loggers.save(logger)
+            graph.settings.update { it.copy(demoMode = false, source = DataSource.LOCAL) }
+            withContext(Dispatchers.Main) { refresh() }
+        }
+    }
+
+    /** Switch between sources that are both already set up. */
+    fun useSource(source: DataSource) {
+        if (graph.settings.load().source == source) return
+        viewModelScope.launch(Dispatchers.IO) {
+            graph.settings.update { it.copy(demoMode = false, source = source) }
+            withContext(Dispatchers.Main) { refresh() }
+        }
+    }
+
+    fun forgetLogger() {
+        viewModelScope.launch(Dispatchers.IO) {
+            graph.loggers.clear()
+            val wasLocal = graph.settings.load().source == DataSource.LOCAL
+            graph.settings.update { it.copy(source = DataSource.CLOUD) }
+            if (wasLocal) withContext(Dispatchers.Main) { setMonitoring(false) }
         }
     }
 
