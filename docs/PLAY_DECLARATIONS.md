@@ -174,7 +174,7 @@ Store listing category: **Tools** (or **House & home**). The title, short and fu
 ## 9. What the developer has to do by hand
 
 1. Create a Google Play developer account (personal, US$25 one-off) and complete identity verification.
-2. Create the app: name *Roshni*, default language English (en-US), App, Free.
+2. Create the app: name *Roshni: Power Outage Alarm* (the store title; the app itself is still called Roshni on the phone), default language English (en-US), App, Free. Add the Urdu listing under Store listing → Manage translations.
 3. Fill in every App content form above, and the store listing from `fastlane/metadata`.
 4. **Closed test first** (required for personal accounts created after November 2023): upload `Roshni-vX.Y.Z.aab` from the GitHub release to a closed testing track, invite at least **12 testers** (a Google Group or email list), and keep at least 12 of them opted in for **14 consecutive days**.
 5. Enrol in **Play App Signing** on the first upload. The key in `~/.android-keys/roshni-release.jks` becomes the *upload key*, and Google holds the app signing key.

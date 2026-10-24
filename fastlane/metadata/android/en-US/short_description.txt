@@ -1,1 +1,1 @@
-Rings like an alarm clock when the mains go off, and shows your battery time.
+Load-shedding & power cut alarm for solar inverters. Know when the mains go off.
