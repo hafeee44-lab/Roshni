@@ -1,4 +1,11 @@
-<p>Roshni watches your hybrid solar inverter through the Solarman cloud and tells you the moment the mains go off: a full-screen alarm over the lock screen, with how long your battery will last.</p>
+<p>Roshni watches your hybrid solar inverter and tells you the moment the mains go off: a full-screen alarm over the lock screen, with how long your battery will last.</p>
+
+<p><b>Works with your inverter</b></p>
+<ul>
+<li><b>Directly over your home Wi-Fi</b>, with no account or API key: Deye, Sunsynk and Sol-Ark, plus (beta) Sofar, Solis, KSTAR, Afore, Megarevo, INVT and other inverters with a Solarman Wi-Fi logger</li>
+<li><b>Through your inverter's cloud</b>: Solarman, plus (beta) Growatt, Huawei FusionSolar, SolisCloud and DESS Monitor (SmartESS / WatchPower, used by many Voltronic-based inverters)</li>
+</ul>
+<p>Beta brands are built from their published specifications and still being confirmed on real hardware. Reports from owners are very welcome.</p>
 
 <p><b>Alerts that reach you</b></p>
 <ul>
@@ -24,6 +31,6 @@
 
 <p>Home-screen widget, Quick Settings tile, English and Urdu, light and dark themes, and a demo mode to try everything without an inverter.</p>
 
-<p>Needs Solarman OpenAPI credentials (App ID and secret), which Solarman issues free to plant owners. No analytics, no accounts of our own: the only network traffic is to Solarman and, if you set one up, your own WhatsApp bridge.</p>
+<p>Free and open source. No ads, no analytics, no accounts of our own: the app only talks to your inverter's logger or your inverter's cloud and, if you set one up, your own WhatsApp bridge.</p>
 
-<p>Not affiliated with Solarman or any inverter maker.</p>
+<p>Not affiliated with Solarman, Deye, Growatt, Huawei, Solis or any inverter maker.</p>

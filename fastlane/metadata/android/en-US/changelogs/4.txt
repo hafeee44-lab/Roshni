@@ -1,0 +1,5 @@
+• Reads your inverter directly over home Wi-Fi, no Solarman App ID needed (Deye, Sunsynk, Sol-Ark; more brands in beta)
+• New cloud brands in beta: Growatt, Huawei FusionSolar, SolisCloud, DESS Monitor
+• Pick your inverter brand and model during setup
+• Fixed house-load reading on Deye three-phase inverters
+• Sign-ins only ever travel over HTTPS

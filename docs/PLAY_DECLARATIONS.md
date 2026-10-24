@@ -1,6 +1,6 @@
 # Google Play Console answers
 
-Ready-to-paste answers for Roshni's Play Console forms. They match the app as of v2.1.0 and [PRIVACY.md](PRIVACY.md). If the app starts sending anything new, update both files.
+Ready-to-paste answers for Roshni's Play Console forms. They match the app as of v2.2.0 and [PRIVACY.md](PRIVACY.md). If the app starts sending anything new, update both files.
 
 Privacy policy URL, wherever Play asks for it:
 
@@ -19,7 +19,7 @@ Choose **All or some functionality is restricted** and add one set of instructio
 - **Any other information:**
 
 ```
-Roshni reads a hybrid solar inverter through the user's own Solarman OpenAPI account. Reviewers do not need one: every feature works in demo mode, which simulates an inverter and two weeks of history on the device.
+Roshni reads the user's own hybrid solar inverter, either directly from its Wi-Fi logger on the home network or through the inverter maker's cloud (Solarman, Growatt, Huawei FusionSolar, SolisCloud or DESS Monitor) with the user's own account. Reviewers need neither: every feature works in demo mode, which simulates an inverter and two weeks of history on the device.
 
 1. Open the app. On the first screen tap "Try with demo data".
 2. On "Let it wake you", tap Allow on each row (or "Continue anyway"), then Continue.
@@ -39,9 +39,9 @@ Demo mode sends no network traffic.
 | Question | Answer |
 |---|---|
 | Does your app collect or share any of the required user data types? | **Yes** |
-| Is all of the user data collected by your app encrypted in transit? | **Yes** (Solarman is only reached over HTTPS) |
-| Which of the following methods of account creation does your app support? | **My app does not allow users to create an account** (users sign in to their existing Solarman account; Roshni has no accounts of its own) |
-| Do you provide a way for users to request that their data is deleted? | **Yes.** Sign out in Settings removes the Solarman credentials, Settings → Data → Clear history removes readings, and uninstalling removes everything. The developer holds no copy. |
+| Is all of the user data collected by your app encrypted in transit? | **Yes.** Every cloud service is reached only over HTTPS; the app refuses plain-HTTP cloud addresses. Local network mode talks only to the user's own logger on their home network and sends no personal data. |
+| Which of the following methods of account creation does your app support? | **My app does not allow users to create an account** (users sign in to an existing account with their inverter's cloud service; Roshni has no accounts of its own) |
+| Do you provide a way for users to request that their data is deleted? | **Yes.** Sign out in Settings removes the stored cloud sign-in details, Settings → Data → Clear history removes readings, and uninstalling removes everything. The developer holds no copy. |
 
 ### Data types
 
@@ -50,21 +50,22 @@ Declare these two, and nothing else:
 **Personal info → Email address**
 - Collected: **Yes**. Shared: **No**
 - Processed ephemerally: **No**
-- Required or optional: **Required** (needed to sign in to Solarman. Demo mode works without it.)
+- Required or optional: **Optional** (only needed to sign in to a cloud service; local network mode and demo mode work without it)
 - Purpose: **App functionality**
 
-**Personal info → User IDs** (the Solarman OpenAPI app ID and account)
+**Personal info → User IDs** (the user's username or API ID for the cloud they pick: Solarman app ID, Growatt or DESS username, Huawei API user, Solis KeyID)
 - Collected: **Yes**. Shared: **No**
 - Processed ephemerally: **No**
-- Required or optional: **Required**
+- Required or optional: **Optional** (not needed for local network mode or demo mode)
 - Purpose: **App functionality**
 
 Why the answers look like this:
 
-- *Collected* in Play's sense means the data leaves the device. The email and app ID go to Solarman's API when the user signs in, so they count, even though the developer never receives them.
-- *Not shared:* the user signs in to their own Solarman account, which is a user-initiated transfer to the service they chose. That falls under Play's exemption for "user-initiated action". No third party gets the data from the developer.
-- The **password** is not a Play data type. It is hashed on the device and sent only as a SHA-256 hash, as part of the same sign-in. If a reviewer asks, it falls under the same answers as the email.
-- **Inverter readings** come from Solarman to the phone. They are not personal data sent off the device.
+- *Collected* in Play's sense means the data leaves the device. The email and user ID go to the cloud service the user picked when they sign in, so they count, even though the developer never receives them.
+- *Not shared:* the user signs in to their own account with the service they chose, which is a user-initiated transfer. That falls under Play's exemption for "user-initiated action". No third party gets the data from the developer.
+- **Passwords and API secrets** are not a Play data type. Solarman, Growatt and DESS passwords are hashed on the device and only the hash is kept and sent. Huawei's API password and Solis's KeySecret are stored encrypted with an Android Keystore key and sent only to that service. If a reviewer asks, they fall under the same answers as the email.
+- **Inverter readings** come from the logger or the cloud to the phone. They are not personal data sent off the device.
+- **Local network mode** sends read requests to the user's own logger on their home network (and a discovery broadcast when they tap "Find logger"). Nothing leaves the home network, so nothing is declared.
 - **WhatsApp relay** (optional, off by default): short alert texts ("Grid outage, battery 82%") go to a bridge address the user types in and runs themselves. They contain no personal data from Play's list, and the user chooses the destination, so nothing is declared. If you'd rather be extra careful, add **App activity → Other actions**, collected, not shared, optional, purpose *App functionality*.
 - Android Auto Backup of settings and history goes to the user's own Google account and is not collection by the app.
 - No analytics, crash reporting, advertising ID, location, contacts, files or device IDs.
@@ -84,12 +85,12 @@ Roshni declares one foreground service type: **specialUse**.
 - **Which feature uses it?** Choose **Other** and use this description:
 
 ```
-Roshni's core feature is a power-outage alarm. A foreground service (MonitorService) polls the user's solar inverter through the Solarman API just after each inverter upload (usually every 5 minutes, every 90 seconds during an outage), and when it sees that the mains grid has failed it immediately rings an alarm and posts a full-screen notification. Outages are unpredictable and often happen at night, so the check has to keep running indefinitely while the app is closed and the phone is asleep. A user-visible ongoing notification shows the live grid and battery state the whole time, and the user can stop monitoring at any time with Settings → "Watch for outages".
+Roshni's core feature is a power-outage alarm. A foreground service (MonitorService) reads the user's solar inverter, from its Wi-Fi logger on the home network or from the inverter maker's cloud API, just after each inverter upload (usually every 5 minutes, with quick retries during an outage), and when it sees that the mains grid has failed it immediately rings an alarm and posts a full-screen notification. Outages are unpredictable and often happen at night, so the check has to keep running indefinitely while the app is closed and the phone is asleep. A user-visible ongoing notification shows the live grid and battery state the whole time, and the user can stop monitoring at any time with Settings → "Watch for outages".
 
 No other foreground service type fits:
 - dataSync is limited to 6 hours a day on Android 15+, and monitoring has to run 24 hours a day.
 - WorkManager periodic work runs at most every 15 minutes and is deferred in Doze, so an outage alarm would arrive up to an hour late.
-- Firebase Cloud Messaging is not possible: Solarman offers no push or webhook API, and Roshni has no server of its own.
+- Firebase Cloud Messaging is not possible: none of the inverter clouds offers a push or webhook API, a local logger cannot send push messages, and Roshni has no server of its own.
 - The service does not sync, upload or back up data, play media, use location or the camera, or connect to a companion device.
 ```
 
@@ -139,7 +140,7 @@ If Google does not pre-grant the permission, the app keeps working. On Android 1
 Roshni uses **SCHEDULE_EXACT_ALARM** (granted by the user, optional), not USE_EXACT_ALARM. Play does not require a declaration for SCHEDULE_EXACT_ALARM, and the app falls back to inexact `setAndAllowWhileIdle` when it is not granted. If the Console or a reviewer asks anyway:
 
 ```
-Roshni schedules its next inverter check with setExactAndAllowWhileIdle so that the check lands just after the inverter's own upload (usually every 5 minutes, every 90 seconds during an outage). That keeps outage alarms within seconds of the mains failing. The permission is optional: the user grants it under Settings → Reliability → Precise timing, and without it the app uses inexact alarms and the alarm may arrive a few minutes later. It is not used for calendar events, reminders or anything user-facing besides the outage check.
+Roshni schedules its next inverter check with setExactAndAllowWhileIdle so that the check lands just after the inverter's own upload (usually every 5 minutes, with quick retries during an outage). That keeps outage alarms within seconds of the mains failing. The permission is optional: the user grants it under Settings → Reliability → Precise timing, and without it the app uses inexact alarms and the alarm may arrive a few minutes later. It is not used for calendar events, reminders or anything user-facing besides the outage check.
 ```
 
 ---
