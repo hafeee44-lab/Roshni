@@ -27,7 +27,9 @@ import io.github.hafeee44lab.solargrid.data.SolarSnapshot
 import io.github.hafeee44lab.solargrid.data.SolarmanSource
 import io.github.hafeee44lab.solargrid.data.changes
 import io.github.hafeee44lab.solargrid.data.local.FoundLogger
+import io.github.hafeee44lab.solargrid.data.local.Detection
 import io.github.hafeee44lab.solargrid.data.local.LocalLogger
+import io.github.hafeee44lab.solargrid.data.local.ProfileCatalog
 import io.github.hafeee44lab.solargrid.data.local.LocalSource
 import io.github.hafeee44lab.solargrid.data.local.LoggerDiscovery
 import io.github.hafeee44lab.solargrid.data.phrases
@@ -311,7 +313,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     /** One trial read, so setup can say straight away whether the logger answers. */
     suspend fun testLogger(logger: LocalLogger): FetchResult =
-        withContext(Dispatchers.IO) { LocalSource(logger).fetch() }
+        withContext(Dispatchers.IO) { LocalSource(logger, graph.inverterProfiles).fetch() }
+
+    /** Reads Deye's device-type register so the model picker can pre-select a profile. */
+    suspend fun detectInverter(logger: LocalLogger): Detection =
+        withContext(Dispatchers.IO) { LocalSource(logger, graph.inverterProfiles).detect() }
+
+    val inverterProfiles: ProfileCatalog get() = graph.inverterProfiles
 
     suspend fun scanForLoggers(): List<FoundLogger> =
         try {

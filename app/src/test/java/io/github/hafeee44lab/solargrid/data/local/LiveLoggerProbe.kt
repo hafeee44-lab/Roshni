@@ -7,7 +7,8 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 
 /**
- * Reads a real logger, read-only (Modbus function 0x03 only), and prints what Roshni would see.
+ * Reads a real logger, read-only (Modbus functions 0x03/0x04 only), and prints what Roshni would see.
+ * ROSHNI_LOGGER_PROFILE picks a profile id; without it the Deye device type decides.
  * Skipped unless both are set:
  *   ROSHNI_LOGGER_IP=192.168.x.y ROSHNI_LOGGER_SERIAL=27xxxxxxxx ./gradlew :app:testDebugUnitTest --tests '*LiveLoggerProbe*'
  */
@@ -19,7 +20,8 @@ class LiveLoggerProbe {
         val serial = System.getenv("ROSHNI_LOGGER_SERIAL")?.let { LocalLogger.parseSerial(it) }
         assumeTrue("set ROSHNI_LOGGER_IP and ROSHNI_LOGGER_SERIAL to run", ip != null && serial != null)
 
-        when (val result = LocalSource(LocalLogger(ip!!, serial!!)).fetch()) {
+        val profile = System.getenv("ROSHNI_LOGGER_PROFILE")
+        when (val result = LocalSource(LocalLogger(ip!!, serial!!, profileId = profile), TestProfiles.catalog).fetch()) {
             is FetchResult.Ok -> {
                 val reading = GridAnalyzer.read(result.metrics)
                 println("LIVE metrics:\n" + reading.dump)
@@ -38,7 +40,7 @@ class LiveLoggerProbe {
 
         SocketLink(ip!!, SolarmanV5.PORT).use { link ->
             var sequence = 0x20
-            val blocks = listOf(RegisterBlock(DeyeLayout.DEVICE_TYPE_REGISTER, 1)) + DeyeLayout.THREE_PHASE_LV.blocks
+            val blocks = listOf(RegisterBlock(ProfileCatalog.DEVICE_TYPE_REGISTER, 1)) + TestProfiles.profile("deye-3p-lv").blocks
             for (block in blocks) {
                 sequence++
                 link.send(SolarmanV5.encode(serial!!, sequence, ModbusRtu.readHoldingRequest(1, block.start, block.count)))

@@ -10,13 +10,14 @@ open class LocalProtocolException(message: String) : IOException(message)
 class ModbusException(message: String, val exceptionCode: Int? = null) : LocalProtocolException(message)
 
 /**
- * Modbus RTU, as carried inside Solarman V5 frames: CRC-16/MODBUS and the read-holding-registers
- * (function 0x03) request and response. Deye inverters expose all their live data as holding
- * registers, which is also what ha-solarman reads them with.
+ * Modbus RTU, as carried inside Solarman V5 frames: CRC-16/MODBUS and the read-registers requests
+ * and responses. Deye and Sofar keep their live data in holding registers (function 0x03); Solis,
+ * Kstar and Afore in input registers (function 0x04). Both are read-only requests.
  */
 object ModbusRtu {
 
     const val READ_HOLDING = 0x03
+    const val READ_INPUT = 0x04
 
     /** CRC-16/MODBUS: reflected polynomial 0xA001, initial value 0xFFFF. Sent low byte first. */
     fun crc16(data: ByteArray, from: Int = 0, to: Int = data.size): Int {
@@ -30,12 +31,15 @@ object ModbusRtu {
         return crc
     }
 
-    fun readHoldingRequest(slave: Int, start: Int, count: Int): ByteArray {
+    fun readHoldingRequest(slave: Int, start: Int, count: Int): ByteArray = readRequest(slave, READ_HOLDING, start, count)
+
+    fun readRequest(slave: Int, function: Int, start: Int, count: Int): ByteArray {
         require(slave in 1..247) { "Modbus address $slave is out of range" }
+        require(function == READ_HOLDING || function == READ_INPUT) { "Only read requests are allowed, not function $function" }
         require(start in 0..0xFFFF && count in 1..125) { "Can't read $count registers from $start" }
         val pdu = byteArrayOf(
             slave.toByte(),
-            READ_HOLDING.toByte(),
+            function.toByte(),
             (start ushr 8).toByte(), start.toByte(),
             (count ushr 8).toByte(), count.toByte()
         )

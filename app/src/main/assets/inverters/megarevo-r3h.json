@@ -1,0 +1,30 @@
+{
+  "id": "megarevo-r3h",
+  "label": "Megarevo three-phase hybrid",
+  "models": [
+    {"brand": "Megarevo", "name": "R6–15KH3"}
+  ],
+  "source": "ha-solarman inverter_definitions by David Rapan and contributors (MIT): megarevo_r-3h.yaml, from Megarevo Hybrid Inverter Modbus Protocol and Solarman app captures",
+  "verified": "documentation",
+  "notes": "No grid-state register is mapped, so grid on/off is judged by frequency and voltage. ha-solarman marks this map as incomplete.",
+  "metrics": [
+    {"key": "G_V_L1", "name": "Grid Voltage L1", "unit": "V", "reg": ["0x3110"], "scale": 0.1},
+    {"key": "G_V_L2", "name": "Grid Voltage L2", "unit": "V", "reg": ["0x3113"], "scale": 0.1},
+    {"key": "G_V_L3", "name": "Grid Voltage L3", "unit": "V", "reg": ["0x3116"], "scale": 0.1},
+    {"key": "PG_F1", "name": "Grid Frequency", "unit": "Hz", "reg": ["0x3119"], "signed": true, "scale": 0.01},
+    {"key": "PG_Pt1", "name": "Total Grid Power", "unit": "W", "sum": [{"reg": ["0x3112"], "signed": true}, {"reg": ["0x3115"], "signed": true}, {"reg": ["0x3118"], "signed": true}]},
+    {"key": "B_P1", "name": "Battery Power", "unit": "W", "reg": ["0x314A"], "signed": true},
+    {"key": "B_left_cap1", "name": "SoC", "unit": "%", "reg": ["0x3145"], "scale": 0.1},
+    {"key": "B_V1", "name": "Battery Voltage", "unit": "V", "reg": ["0x3140"], "scale": 0.1},
+    {"key": "B_T1", "name": "Temperature- Battery", "unit": "℃", "reg": ["0x3146"], "signed": true, "scale": 0.1},
+    {"key": "AC_T", "name": "AC Temperature", "unit": "℃", "reg": ["0x311A"], "signed": true},
+    {"key": "S_P_T", "name": "Total Solar Power", "unit": "W", "sum": [{"reg": ["0x3132"]}, {"reg": ["0x3135"]}, {"reg": ["0x3138"]}, {"reg": ["0x313B"]}]},
+    {"key": "E_Puse_t1", "name": "Total Consumption Power", "unit": "W", "sum": [{"reg": ["0x3122"]}, {"reg": ["0x3126"]}, {"reg": ["0x312A"]}]},
+    {"key": "Etdy_ge1", "name": "Daily Production", "unit": "kWh", "reg": ["0x3153", "0x3154"], "scale": 0.001},
+    {"key": "Etdy_gn1", "name": "Daily Grid Feed-in", "unit": "kWh", "reg": ["0x3155", "0x3156"], "scale": 0.001},
+    {"key": "Etdy_use1", "name": "Daily Consumption", "unit": "kWh", "reg": ["0x3157", "0x3158"], "scale": 0.001},
+    {"key": "Etdy_pu1", "name": "Daily Energy Purchased", "unit": "kWh", "reg": ["0x316B", "0x316C"], "scale": 0.001},
+    {"key": "Etdy_cg1", "name": "Daily Charging Energy", "unit": "kWh", "reg": ["0x316D", "0x316E"], "scale": 0.001},
+    {"key": "Etdy_dcg1", "name": "Daily Discharging Energy", "unit": "kWh", "reg": ["0x316F", "0x3170"], "scale": 0.001}
+  ]
+}

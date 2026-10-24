@@ -61,6 +61,25 @@ If your inverter reports to **Solarman** (SOLARMAN Smart / SOLARMAN Business), i
 
 It has been tested on a **Deye three-phase low-voltage hybrid (SG05)**. Metrics are found by their known key first and by their human-readable name second, so other models usually work out of the box. If yours doesn't, open **Settings → Inverter data**, copy the dump, and attach it to an issue.
 
+### Local network mode (no Solarman App ID)
+
+Roshni can also read the inverter straight from its Solarman Wi-Fi stick on your home Wi-Fi (Solarman V5 on TCP 8899). Each inverter family needs a register map; these are bundled as profiles in [`app/src/main/assets/inverters`](app/src/main/assets/inverters):
+
+| Brand | Models | Checked on a real inverter? |
+|---|---|---|
+| Deye | three-phase LV hybrids (SG04LP3, SG05LP3) | **Yes**, SUN-12K-SG05LP3, against the Solarman app |
+| Deye | three-phase HV hybrids (SG01HP3), single-phase and US split-phase hybrids (SG0xLP1) | No, from Deye's Modbus documents |
+| Sunsynk, Sol-Ark | Deye-made hybrids, same maps as Deye | No |
+| Sofar / ZCS Azzurro | HYD-KTL-3PH and HYD-EP (G3), HYD-ES and ME 3000-SP | No |
+| Solis | RHI single- and three-phase hybrids (5G) | No |
+| KSTAR | KSE and BluE-S hybrids | No |
+| Afore / Bluesun | AF-TH and SL hybrids | No |
+| Megarevo, Renon Power, INVT, ANENJI | R-3H; IFL; XD/XG; off-grid hybrids | No |
+
+Deye, Sunsynk and Sol-Ark say what they are, so Roshni picks their profile automatically; for other brands, pick the model in **Settings → Data source**. "No" means the map comes from the maker's register document via ha-solarman and has unit tests, but nobody has compared it with a real inverter yet: please check the first readings against your inverter's screen and open an issue with the dump either way. Growatt, Huawei, GoodWe and Victron use their own loggers rather than a Solarman stick, and Voltronic/Axpert-style inverters usually ship with other Wi-Fi modules, so they can't be read this way. ha-solarman also has maps for SRNE ASF, Hinen and Swatten hybrids, but without a grid power reading, so they are left out for now.
+
+The register maps are derived from [ha-solarman](https://github.com/davidrapan/ha-solarman)'s inverter definitions by David Rapan and contributors, used under the MIT licence; see [NOTICE](NOTICE).
+
 ## Getting started
 
 ### 1. Get Solarman OpenAPI credentials
@@ -146,6 +165,6 @@ No accounts, ads or analytics, and nothing reaches the developer. See the [priva
 
 ## Licence
 
-[MIT](LICENSE).
+[MIT](LICENSE). Third-party material and its licences are listed in [NOTICE](NOTICE).
 
 *Not affiliated with Solarman or any inverter manufacturer.*

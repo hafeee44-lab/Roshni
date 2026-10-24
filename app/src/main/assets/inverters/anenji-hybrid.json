@@ -1,0 +1,19 @@
+{
+  "id": "anenji-hybrid",
+  "label": "ANENJI hybrid",
+  "models": [
+    {"brand": "ANENJI", "name": "Hybrid (off-grid) inverters with a Solarman Wi-Fi stick"}
+  ],
+  "source": "ha-solarman inverter_definitions by David Rapan and contributors (MIT): anenji_hybrid.yaml, from ANENJI RS232 Communication Protocol V1.0",
+  "verified": "documentation",
+  "notes": "No grid-state register is mapped, so grid on/off is judged by frequency and voltage. No daily energy counters.",
+  "metrics": [
+    {"key": "G_V_L1", "name": "Grid Voltage L1", "unit": "V", "reg": ["0x00CA"], "signed": true, "scale": 0.1},
+    {"key": "PG_F1", "name": "Grid Frequency", "unit": "Hz", "reg": ["0x00CB"], "signed": true, "scale": 0.01},
+    {"key": "PG_Pt1", "name": "Total Grid Power", "unit": "W", "reg": ["0x00CC"], "signed": true},
+    {"key": "B_P1", "name": "Battery Power", "unit": "W", "reg": ["0x00D9"], "signed": true},
+    {"key": "B_left_cap1", "name": "SoC", "unit": "%", "reg": ["0x00E5"]},
+    {"key": "B_V1", "name": "Battery Voltage", "unit": "V", "reg": ["0x00D7"], "signed": true, "scale": 0.1},
+    {"key": "E_Puse_t1", "name": "Total Consumption Power", "unit": "W", "reg": ["0x00D5"], "signed": true}
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "renon-ifl",
+  "label": "Renon IFL single-phase hybrid",
+  "models": [
+    {"brand": "Renon Power", "name": "IFL single-phase hybrids"}
+  ],
+  "source": "ha-solarman inverter_definitions by David Rapan and contributors (MIT): renon_ifl.yaml",
+  "verified": "documentation",
+  "notes": "Shares Megarevo's 0x31xx layout. No grid-state register is mapped, so grid on/off is judged by frequency and voltage. ha-solarman gives no protocol document for this map.",
+  "metrics": [
+    {"key": "G_V_L1", "name": "Grid Voltage L1", "unit": "V", "reg": ["0x3110"], "scale": 0.1},
+    {"key": "PG_F1", "name": "Grid Frequency", "unit": "Hz", "reg": ["0x3119"], "scale": 0.01},
+    {"key": "PG_Pt1", "name": "Total Grid Power", "unit": "W", "reg": ["0x2285", "0x2284"], "signed": true},
+    {"key": "B_P1", "name": "Battery Power", "unit": "W", "reg": ["0x314A"], "signed": true},
+    {"key": "B_left_cap1", "name": "SoC", "unit": "%", "reg": ["0x3145"], "scale": 0.1},
+    {"key": "B_V1", "name": "Battery Voltage", "unit": "V", "reg": ["0x3140"], "scale": 0.1},
+    {"key": "B_T1", "name": "Temperature- Battery", "unit": "℃", "reg": ["0x3146"], "signed": true, "scale": 0.1},
+    {"key": "AC_T", "name": "AC Temperature", "unit": "℃", "reg": ["0x16A6"], "signed": true, "scale": 0.1},
+    {"key": "E_Puse_t1", "name": "Total Consumption Power", "unit": "W", "reg": ["0x2289", "0x2288"]},
+    {"key": "Etdy_ge1", "name": "Daily Production", "unit": "kWh", "reg": ["0x3153", "0x3154"], "scale": 0.001},
+    {"key": "Etdy_gn1", "name": "Daily Grid Feed-in", "unit": "kWh", "reg": ["0x3155", "0x3156"], "scale": 0.001},
+    {"key": "Etdy_use1", "name": "Daily Consumption", "unit": "kWh", "reg": ["0x3157", "0x3158"], "scale": 0.001},
+    {"key": "Etdy_pu1", "name": "Daily Energy Purchased", "unit": "kWh", "reg": ["0x316B", "0x316C"], "scale": 0.001},
+    {"key": "Etdy_cg1", "name": "Daily Charging Energy", "unit": "kWh", "reg": ["0x316D", "0x316E"], "scale": 0.001},
+    {"key": "Etdy_dcg1", "name": "Daily Discharging Energy", "unit": "kWh", "reg": ["0x316F", "0x3170"], "scale": 0.001}
+  ]
+}
