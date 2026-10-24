@@ -51,7 +51,10 @@ object OkCloudHttp : CloudHttp {
 
     private suspend fun send(builder: Request.Builder, headers: Map<String, String>): HttpReply = withContext(Dispatchers.IO) {
         headers.forEach { (name, value) -> builder.header(name, value) }
-        client.newCall(builder.build()).execute().use { response ->
+        val request = builder.build()
+        // Sign-in details only ever travel encrypted, even if someone types an http:// server.
+        require(request.url().isHttps) { "Roshni only talks to inverter clouds over HTTPS" }
+        client.newCall(request).execute().use { response ->
             HttpReply(
                 code = response.code(),
                 body = response.body()?.string().orEmpty(),

@@ -171,7 +171,7 @@ class GrowattSource(
 
         fun baseUrl(server: String): String {
             val host = server.trim().ifBlank { DEFAULT_SERVER }.removeSuffix("/")
-            return (if (host.startsWith("http")) host else "https://$host") + "/"
+            return "https://" + host.removePrefix("https://").removePrefix("http://") + "/"
         }
 
         /**

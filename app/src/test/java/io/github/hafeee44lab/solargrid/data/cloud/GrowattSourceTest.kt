@@ -219,7 +219,8 @@ class GrowattSourceTest {
     fun `regional servers keep their host`() {
         assertEquals("https://openapi-us.growatt.com/", GrowattSource.baseUrl("openapi-us.growatt.com"))
         assertEquals("https://openapi.growatt.com/", GrowattSource.baseUrl(" "))
-        assertEquals("http://server.smten.com/", GrowattSource.baseUrl("http://server.smten.com/"))
+        // Sign-ins only travel encrypted: a typed http:// server is upgraded.
+        assertEquals("https://server.smten.com/", GrowattSource.baseUrl("http://server.smten.com/"))
         assertNotNull(GrowattSource.Device.parse("classic|tlx|SN1|42"))
     }
 }

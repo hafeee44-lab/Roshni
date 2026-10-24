@@ -62,7 +62,7 @@ class SolisSource(
 
         fun baseUrl(raw: String): String {
             val url = raw.trim().ifBlank { DEFAULT_API_URL }.removeSuffix("/")
-            return if (url.startsWith("http")) url else "https://$url"
+            return "https://" + url.removePrefix("https://").removePrefix("http://")
         }
 
         fun httpDate(ms: Long): String =
