@@ -398,4 +398,11 @@
     <string name="field_api_password">API password (system code)</string>
     <string name="connect_huawei_body">Readings come from FusionSolar\'s Northbound API. Your normal FusionSolar login won\'t work here: it needs an API account your installer creates. Huawei allows one reading a minute.</string>
     <string name="huawei_help">Ask your installer to sign in to FusionSolar as the installer, open System → Company management → Northbound management, tap Add, set a username and password, choose your plant, enable Basic APIs and the device data for the inverter, battery and power sensor, and set the expiry far ahead. Use those here. The server is the start of your FusionSolar web address, for example intl.fusionsolar.huawei.com or eu5.fusionsolar.huawei.com. Don\'t use the same API account in another app: Huawei allows one session at a time. The kiosk link isn\'t enough: it shows only solar production, so it can\'t see a cut.</string>
+    <string name="brand_solis_sub">Solis hybrids on SolisCloud, with an API key from SolisCloud</string>
+    <string name="solis_mode">SolisCloud API key</string>
+    <string name="field_key_id">KeyID</string>
+    <string name="field_key_secret">KeySecret</string>
+    <string name="field_api_url">API URL</string>
+    <string name="connect_solis_body">Readings come from SolisCloud\'s official API, the same data the SolisCloud app shows. The logger uploads every 5 minutes.</string>
+    <string name="solis_help">First ask Solis to switch on API access for your account: open a service ticket from the link below (it is free). Then sign in at soliscloud.com, open Account → API management, activate it and accept the terms, then tap View key. After a slider check and an emailed code you get the KeyID, the KeySecret and the API URL. Copy all three here. This phone\'s clock must be set automatically, or Solis refuses the requests.</string>
 </resources>

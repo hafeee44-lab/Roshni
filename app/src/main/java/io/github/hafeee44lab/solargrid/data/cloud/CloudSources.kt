@@ -10,6 +10,7 @@ object CloudSources {
         CloudBrand.SOLARMAN -> null
         CloudBrand.GROWATT -> GrowattSource(account, session, http)
         CloudBrand.HUAWEI -> HuaweiSource(account, session, http)
+        CloudBrand.SOLIS -> SolisSource(account, session, http)
     }
 
     /** Signs in with [fields] and lists the inverters the source can read. */
@@ -17,5 +18,6 @@ object CloudSources {
         CloudBrand.SOLARMAN -> Result.failure(IllegalArgumentException("Solarman signs in through its own form"))
         CloudBrand.GROWATT -> GrowattSource.discover(fields, http)
         CloudBrand.HUAWEI -> HuaweiSource.discover(fields, http)
+        CloudBrand.SOLIS -> SolisSource.discover(fields, http)
     }
 }

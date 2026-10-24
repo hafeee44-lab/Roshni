@@ -23,7 +23,10 @@ enum class CloudBrand(
      * FusionSolar's Northbound API allows one getDevRealKpi call a minute per account, and each
      * poll makes one (see HuaweiSource). Two minutes leaves room for a manual refresh.
      */
-    HUAWEI("Huawei FusionSolar", 2 * 60_000L);
+    HUAWEI("Huawei FusionSolar", 2 * 60_000L),
+
+    /** SolisCloud's official API allows two calls a second; a minute is plenty, the logger uploads every 5. */
+    SOLIS("SolisCloud", 60_000L);
 
     companion object {
         fun from(name: String?): CloudBrand = entries.firstOrNull { it.name == name } ?: SOLARMAN

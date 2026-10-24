@@ -400,4 +400,11 @@
     <string name="field_api_password">API پاس ورڈ (system code)</string>
     <string name="connect_huawei_body">ریڈنگ فیوژن سولر کے Northbound API سے آتی ہے۔ آپ کا عام فیوژن سولر لاگ اِن یہاں کام نہیں کرے گا: اس کے لیے انسٹالر کا بنایا ہوا API اکاؤنٹ چاہیے۔ ہواوے ایک منٹ میں ایک ریڈنگ کی اجازت دیتا ہے۔</string>
     <string name="huawei_help">اپنے انسٹالر سے کہیں کہ وہ فیوژن سولر میں انسٹالر کے طور پر سائن اِن کرے، System ← Company management ← Northbound management کھولے، Add دبائے، یوزر نیم اور پاس ورڈ رکھے، آپ کا پلانٹ چنے، Basic APIs اور انورٹر، بیٹری اور پاور سینسر کا device data آن کرے، اور میعاد بہت آگے کی رکھے۔ وہی یہاں لکھیں۔ سرور آپ کے فیوژن سولر ویب ایڈریس کا شروع والا حصہ ہے، مثلاً intl.fusionsolar.huawei.com یا eu5.fusionsolar.huawei.com۔ یہی API اکاؤنٹ کسی اور ایپ میں استعمال نہ کریں: ہواوے ایک وقت میں ایک ہی سیشن کی اجازت دیتا ہے۔ کیوسک لنک کافی نہیں: اس میں صرف سولر پیداوار دکھتی ہے، اس لیے بجلی جانے کا پتا نہیں چلتا۔</string>
+    <string name="brand_solis_sub">سولس کلاؤڈ پر سولس ہائبرڈ، سولس کلاؤڈ کی API key کے ساتھ</string>
+    <string name="solis_mode">سولس کلاؤڈ API key</string>
+    <string name="field_key_id">KeyID</string>
+    <string name="field_key_secret">KeySecret</string>
+    <string name="field_api_url">API URL</string>
+    <string name="connect_solis_body">ریڈنگ سولس کلاؤڈ کے سرکاری API سے آتی ہے، وہی ڈیٹا جو سولس کلاؤڈ ایپ دکھاتی ہے۔ لاگر ہر 5 منٹ میں ڈیٹا بھیجتا ہے۔</string>
+    <string name="solis_help">پہلے سولس سے اپنے اکاؤنٹ پر API رسائی کھلوائیں: نیچے دیے لنک سے سروس ٹکٹ کھولیں (مفت ہے)۔ پھر soliscloud.com پر سائن اِن کریں، Account ← API management کھولیں، اسے فعال کریں اور شرائط مانیں، پھر View key دبائیں۔ سلائیڈر والی جانچ اور ای میل پر آئے کوڈ کے بعد آپ کو KeyID، KeySecret اور API URL ملیں گے۔ تینوں یہاں لکھیں۔ اس فون کا وقت خودکار ہونا چاہیے، ورنہ سولس درخواستیں رد کر دیتا ہے۔</string>
 </resources>

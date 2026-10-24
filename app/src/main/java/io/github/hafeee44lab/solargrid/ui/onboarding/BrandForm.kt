@@ -42,6 +42,7 @@ import io.github.hafeee44lab.solargrid.data.cloud.BrandAccount
 import io.github.hafeee44lab.solargrid.data.cloud.CloudBrand
 import io.github.hafeee44lab.solargrid.data.cloud.GrowattSource
 import io.github.hafeee44lab.solargrid.data.cloud.HuaweiSource
+import io.github.hafeee44lab.solargrid.data.cloud.SolisSource
 import io.github.hafeee44lab.solargrid.ui.MainViewModel
 import io.github.hafeee44lab.solargrid.ui.components.Icons
 import io.github.hafeee44lab.solargrid.ui.components.ListGroup
@@ -116,6 +117,22 @@ private fun specOf(brand: CloudBrand): BrandSpec = when (brand) {
         help = R.string.huawei_help,
         helpUrl = "https://github.com/tijsverkoyen/HomeAssistant-FusionSolar#if-you-know-your-installer-or-you-have-the-installer-account"
     )
+    CloudBrand.SOLIS -> BrandSpec(
+        modeKey = null,
+        modes = listOf(
+            BrandMode(
+                "api", R.string.solis_mode,
+                listOf(
+                    BrandField(SolisSource.KEY_ID, R.string.field_key_id, keyboard = KeyboardType.Number),
+                    BrandField(SolisSource.KEY_SECRET, R.string.field_key_secret, secret = true),
+                    BrandField(SolisSource.API_URL, R.string.field_api_url, keyboard = KeyboardType.Uri, default = SolisSource.DEFAULT_API_URL)
+                )
+            )
+        ),
+        body = R.string.connect_solis_body,
+        help = R.string.solis_help,
+        helpUrl = "https://solis-service.solisinverters.com/support/solutions/articles/44002212561-api-access-soliscloud"
+    )
 }
 
 /** Which maker's cloud to read. Shared by onboarding and Settings. */
@@ -147,6 +164,7 @@ private fun brandSubtitle(brand: CloudBrand): Int = when (brand) {
     CloudBrand.SOLARMAN -> R.string.brand_solarman_sub
     CloudBrand.GROWATT -> R.string.brand_growatt_sub
     CloudBrand.HUAWEI -> R.string.brand_huawei_sub
+    CloudBrand.SOLIS -> R.string.brand_solis_sub
 }
 
 /**
