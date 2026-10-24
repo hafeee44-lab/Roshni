@@ -1,0 +1,27 @@
+{
+  "id": "invt-hybrid-1p",
+  "label": "INVT single-phase hybrid",
+  "models": [
+    {"brand": "INVT", "name": "XD/XG single-phase hybrids (…TL), e.g. XD6KTL"}
+  ],
+  "source": "ha-solarman inverter_definitions by David Rapan and contributors (MIT): invt_xd-tl.yaml (tested there on an XD6KTL with an LSW5 logger), from INVT Modbus July 2024",
+  "verified": "documentation",
+  "notes": "No grid-state register is mapped, so grid on/off is judged by frequency and voltage. Consumption is inverter output plus grid, as ha-solarman computes it.",
+  "metrics": [
+    {"key": "G_V_L1", "name": "Grid Voltage L1", "unit": "V", "reg": ["0x3811"], "scale": 0.1},
+    {"key": "PG_F1", "name": "Grid Frequency", "unit": "Hz", "reg": ["0x381A"], "scale": 0.01},
+    {"key": "PG_Pt1", "name": "Total Grid Power", "unit": "W", "reg": ["0x3828", "0x3827"], "signed": true, "scale": 0.1},
+    {"key": "B_P1", "name": "Battery Power", "unit": "W", "reg": ["0x3909", "0x3908"], "signed": true, "scale": 0.1},
+    {"key": "B_left_cap1", "name": "SoC", "unit": "%", "reg": ["0x393B"]},
+    {"key": "B_V1", "name": "Battery Voltage", "unit": "V", "reg": ["0x390A"], "scale": 0.1},
+    {"key": "B_T1", "name": "Temperature- Battery", "unit": "℃", "reg": ["0x394D"], "scale": 0.1},
+    {"key": "AC_T", "name": "AC Temperature", "unit": "℃", "reg": ["0x3826"], "signed": true, "scale": 0.1},
+    {"key": "S_P_T", "name": "Total Solar Power", "unit": "W", "scale": 0.1, "sum": [{"reg": ["0x3B01"]}, {"reg": ["0x3B02"]}, {"reg": ["0x3B03"]}, {"reg": ["0x3B04"]}, {"reg": ["0x3B05"]}, {"reg": ["0x3B06"]}, {"reg": ["0x3B07"]}, {"reg": ["0x3B08"]}, {"reg": ["0x3B09"]}, {"reg": ["0x3B0A"]}, {"reg": ["0x3B0B"]}, {"reg": ["0x3B0C"]}]},
+    {"key": "E_Puse_t1", "name": "Total Consumption Power", "unit": "W", "scale": 0.1, "floor": 0, "sum": [{"reg": ["0x381E", "0x381D"], "signed": true}, {"reg": ["0x3828", "0x3827"], "signed": true}]},
+    {"key": "Etdy_ge1", "name": "Daily Production", "unit": "kWh", "reg": ["0x382F"], "scale": 0.1},
+    {"key": "Etdy_pu1", "name": "Daily Energy Purchased", "unit": "kWh", "reg": ["0x3898"], "scale": 0.1},
+    {"key": "Etdy_gn1", "name": "Daily Grid Feed-in", "unit": "kWh", "reg": ["0x3895"], "scale": 0.1},
+    {"key": "Etdy_cg1", "name": "Daily Charging Energy", "unit": "kWh", "reg": ["0x389B"], "scale": 0.1},
+    {"key": "Etdy_dcg1", "name": "Daily Discharging Energy", "unit": "kWh", "reg": ["0x389E"], "scale": 0.1}
+  ]
+}

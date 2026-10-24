@@ -17,12 +17,16 @@ import java.net.SocketTimeoutException
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
-/** A Solarman Wi-Fi logger on the home network. */
+/**
+ * A Solarman Wi-Fi logger on the home network. [profileId] names the inverter profile the user
+ * picked; null means detect it from Deye's device-type register.
+ */
 data class LocalLogger(
     val host: String,
     val serial: Long,
     val port: Int = SolarmanV5.PORT,
-    val modbusAddress: Int = 1
+    val modbusAddress: Int = 1,
+    val profileId: String? = null
 ) {
     val isComplete: Boolean
         get() = host.isNotBlank() && serial in 1..SolarmanV5.MAX_SERIAL
@@ -54,6 +58,14 @@ class LoggerUnreachable(message: String) : IOException(message)
 
 /** The inverter behind the logger is not one we have a register map for. */
 class UnsupportedInverter(message: String) : IOException(message)
+
+/** What reading Deye's device-type register found. */
+sealed interface Detection {
+    data class Found(val profile: InverterProfile) : Detection
+    /** It answered, but with a code no bundled profile claims (or a non-Deye inverter). */
+    data class Unknown(val deviceType: Int) : Detection
+    data class Failed(val message: String) : Detection
+}
 
 class SocketLink(
     host: String,
@@ -97,6 +109,7 @@ class SocketLink(
  */
 class LocalSource(
     private val logger: LocalLogger,
+    private val catalog: ProfileCatalog,
     private val open: (LocalLogger) -> LoggerLink = { SocketLink(it.host, it.port) },
     private val retryDelayMs: Long = RETRY_DELAY_MS,
     private val now: () -> Long = System::currentTimeMillis
@@ -117,43 +130,67 @@ class LocalSource(
         FetchResult.Failed(describe(failure))
     }
 
+    /**
+     * Reads Deye's device-type register once, for the model picker to pre-select a profile. On
+     * other brands register 0 means something else, so only codes a profile claims count.
+     */
+    suspend fun detect(): Detection = withContext(Dispatchers.IO) {
+        var failure: IOException? = null
+        for (attempt in 0 until ATTEMPTS) {
+            if (attempt > 0) delay(retryDelayMs)
+            try {
+                val type = open(logger).use { Session(it).read(ModbusRtu.READ_HOLDING, ProfileCatalog.DEVICE_TYPE_REGISTER, 1)[0] }
+                return@withContext catalog.detect(type)?.let { Detection.Found(it) } ?: Detection.Unknown(type)
+            } catch (e: ModbusException) {
+                return@withContext Detection.Unknown(-1)
+            } catch (e: IOException) {
+                failure = e
+            }
+        }
+        Detection.Failed(describe(failure))
+    }
+
     private fun readOnce(): List<SolarMetric> = open(logger).use { link ->
         val session = Session(link)
-        val key = "${logger.host}/${logger.serial}"
-        val layout = layouts[key] ?: detect(session).also { layouts[key] = it }
+        val profile = logger.profileId?.let {
+            catalog.byId(it) ?: throw UnsupportedInverter("The inverter model saved for this logger is no longer available. Pick it again in Settings.")
+        } ?: run {
+            val key = "${logger.host}/${logger.serial}"
+            profiles[key]?.let(catalog::byId) ?: detect(session).also { profiles[key] = it.id }
+        }
 
         val registers = HashMap<Int, Int>()
-        for (block in layout.blocks) {
+        for (block in profile.blocks) {
             val values = try {
-                session.read(block.start, block.count)
+                session.read(block.function, block.start, block.count)
             } catch (e: ModbusException) {
                 if (block.required) throw e else continue
             }
-            values.forEachIndexed { i, v -> registers[block.start + i] = v }
+            values.forEachIndexed { i, v -> registers[InverterProfile.key(block.function, block.start + i)] = v }
         }
-        DeyeRegisters.metrics(layout, registers)
+        profile.read(registers)
     }
 
-    private fun detect(session: Session): DeyeLayout {
-        val type = session.read(DeyeLayout.DEVICE_TYPE_REGISTER, 1)[0]
-        return DeyeLayout.fromDeviceType(type)
+    private fun detect(session: Session): InverterProfile {
+        val type = session.read(ModbusRtu.READ_HOLDING, ProfileCatalog.DEVICE_TYPE_REGISTER, 1)[0]
+        return catalog.detect(type)
             ?: throw UnsupportedInverter(
-                "This inverter (Deye device type 0x%04X) can't be read on the local network yet. Use Solarman cloud instead.".format(type)
+                "Couldn't recognise this inverter (device type 0x%04X). Pick its model in Settings → Data source.".format(type)
             )
     }
 
     private inner class Session(private val link: LoggerLink) {
         private var sequence = Random.nextInt(1, 255)
 
-        fun read(start: Int, count: Int): IntArray {
+        fun read(function: Int, start: Int, count: Int): IntArray {
             sequence = (sequence + 1) and 0xFF
-            val request = ModbusRtu.readHoldingRequest(logger.modbusAddress, start, count)
+            val request = ModbusRtu.readRequest(logger.modbusAddress, function, start, count)
             link.send(SolarmanV5.encode(logger.serial, sequence, request))
 
             // Loggers slip in heartbeats and late answers to someone else's request; skip those.
             repeat(MAX_UNRELATED_FRAMES) {
                 when (val decoded = SolarmanV5.decode(link.readFrame(), logger.serial, sequence)) {
-                    is SolarmanV5.Decoded.Reply -> return ModbusRtu.parseReadResponse(decoded.modbus, logger.modbusAddress, count)
+                    is SolarmanV5.Decoded.Reply -> return ModbusRtu.parseReadResponse(decoded.modbus, logger.modbusAddress, count, function)
                     is SolarmanV5.Decoded.Unrelated -> Unit
                 }
             }
@@ -174,9 +211,9 @@ class LocalSource(
         const val RETRY_DELAY_MS = 1_500L
         private const val MAX_UNRELATED_FRAMES = 8
 
-        /** Which register layout each logger leads to, so register 0 is read once per app run. */
-        private val layouts = ConcurrentHashMap<String, DeyeLayout>()
+        /** Which profile each auto-detected logger leads to, so register 0 is read once per app run. */
+        private val profiles = ConcurrentHashMap<String, String>()
 
-        internal fun forgetLayouts() = layouts.clear()
+        internal fun forgetLayouts() = profiles.clear()
     }
 }

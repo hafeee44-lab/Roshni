@@ -9,11 +9,14 @@ import org.junit.Test
 import java.util.Locale
 
 /**
- * Raw register images for the three Deye layouts, run through GridAnalyzer. The three-phase one
+ * Raw register images for the three Deye profiles, run through GridAnalyzer. The three-phase one
  * mirrors the SG05 outage dump in DeyeDumpTest, so a local poll must reach the same verdict and
- * the same numbers as the cloud did.
+ * the same numbers as the cloud did. These are the tests the hard-coded DeyeRegisters passed
+ * before the maps moved into assets/inverters; they must keep passing unchanged.
  */
-class DeyeRegistersTest {
+class DeyeProfilesTest {
+
+    private val DEYE = listOf("deye-3p-lv", "deye-3p-hv", "deye-1p")
 
     private fun s16(value: Int) = value and 0xFFFF
 
@@ -42,12 +45,13 @@ class DeyeRegistersTest {
         0x0066 to 110
     )
 
-    private fun read(layout: DeyeLayout, registers: Map<Int, Int>) =
-        GridAnalyzer.read(DeyeRegisters.metrics(layout, registers))
+    private fun metrics(id: String, registers: Map<Int, Int>) = TestProfiles.profile(id).read(TestProfiles.holding(registers))
+
+    private fun read(id: String, registers: Map<Int, Int>) = GridAnalyzer.read(metrics(id, registers))
 
     @Test
     fun theOutageReadsTheSameAsFromTheCloud() {
-        val reading = read(DeyeLayout.THREE_PHASE_LV, sg05Outage)
+        val reading = read("deye-3p-lv", sg05Outage)
         val verdict = GridAnalyzer.evaluate(reading)!!
         assertTrue(verdict.gridDown)
         assertEquals("grid relay open", verdict.basis)
@@ -68,7 +72,7 @@ class DeyeRegistersTest {
 
     @Test
     fun todaysTotalsAreRead() {
-        val today = read(DeyeLayout.THREE_PHASE_LV, sg05Outage).today
+        val today = read("deye-3p-lv", sg05Outage).today
         assertEquals(21.1, today.producedKwh!!, 0.001)
         // The day's balance, as Solarman shows it: 12.3 + 21.1 + 5.6 − 5.5 − 0.4.
         assertEquals(33.1, today.consumedKwh!!, 0.001)
@@ -87,7 +91,7 @@ class DeyeRegistersTest {
             0x0271 to 1240,
             0x024E to s16(-800) // charging
         )
-        val reading = read(DeyeLayout.THREE_PHASE_LV, restored)
+        val reading = read("deye-3p-lv", restored)
         val verdict = GridAnalyzer.evaluate(reading)!!
         assertFalse(verdict.gridDown)
         assertEquals("grid relay closed", verdict.basis)
@@ -101,14 +105,14 @@ class DeyeRegistersTest {
     fun thirtyTwoBitPowersCombineLowWordFirst() {
         // Exporting 1.5 kW: -1500 as a 32-bit value, split into its low and high words.
         val exporting = sg05Outage + mapOf(0x0271 to s16(-1500), 0x02B2 to 0xFFFF, 0x028D to (70_000 and 0xFFFF), 0x0293 to (70_000 ushr 16))
-        val reading = read(DeyeLayout.THREE_PHASE_LV, exporting)
+        val reading = read("deye-3p-lv", exporting)
         assertEquals(-1500.0, reading.gridPowerW!!, 0.001)
         assertEquals(70_000.0, reading.loadPowerW!!, 0.001)
     }
 
     @Test
     fun loadIgnoresTheExternalCt() {
-        val reading = read(DeyeLayout.THREE_PHASE_LV, sg05Outage + mapOf(0x026B to 400))
+        val reading = read("deye-3p-lv", sg05Outage + mapOf(0x026B to 400))
         assertEquals(1168.0, reading.loadPowerW!!, 0.001)
     }
 
@@ -132,7 +136,7 @@ class DeyeRegistersTest {
             0x02B2 to 0, 0x02B6 to 0xFFFF, 0x02C4 to 0, 0x0293 to 0,
             0x0066 to 110
         )
-        val reading = read(DeyeLayout.THREE_PHASE_LV, live)
+        val reading = read("deye-3p-lv", live)
         assertEquals(false, GridAnalyzer.evaluate(reading)!!.gridDown)
         assertEquals(listOf(238.0, 235.5, 238.4), reading.gridPhaseVolts)
         assertEquals(50.08, reading.gridFrequency!!, 0.001)
@@ -155,13 +159,13 @@ class DeyeRegistersTest {
 
     @Test
     fun solarIsTheSumOfEveryInput() {
-        val reading = read(DeyeLayout.THREE_PHASE_LV, sg05Outage + mapOf(0x02A0 to 1500, 0x02A1 to 1200, 0x02A2 to 0, 0x02A3 to 0))
+        val reading = read("deye-3p-lv", sg05Outage + mapOf(0x02A0 to 1500, 0x02A1 to 1200, 0x02A2 to 0, 0x02A3 to 0))
         assertEquals(2700.0, reading.solarPowerW!!, 0.001)
     }
 
     @Test
     fun highVoltageModelsUseTheirOwnScales() {
-        val reading = read(DeyeLayout.THREE_PHASE_HV, sg05Outage + mapOf(0x024B to 4096, 0x024E to 123, 0x02A0 to 250))
+        val reading = read("deye-3p-hv", sg05Outage + mapOf(0x024B to 4096, 0x024E to 123, 0x02A0 to 250))
         assertEquals(409.6, reading.batteryVoltage!!, 0.001)
         assertEquals(1230.0, reading.batteryPowerW!!, 0.001)
         assertEquals(2500.0, reading.solarPowerW!!, 0.001)
@@ -184,7 +188,7 @@ class DeyeRegistersTest {
             0x00C2 to 1,
             0x00CC to 200
         )
-        val reading = read(DeyeLayout.SINGLE_PHASE, registers)
+        val reading = read("deye-1p", registers)
         assertFalse(GridAnalyzer.evaluate(reading)!!.gridDown)
         assertEquals(listOf(228.7), reading.gridPhaseVolts)
         assertEquals(50.02, reading.gridFrequency!!, 0.001)
@@ -199,35 +203,35 @@ class DeyeRegistersTest {
         assertEquals(200.0, reading.batteryCapacityAh!!, 0.001)
         assertEquals(8.8, reading.today.producedKwh!!, 0.001)
 
-        val cut = read(DeyeLayout.SINGLE_PHASE, registers + mapOf(0x00C2 to 0, 0x0096 to 0, 0x004F to 0, 0x00A9 to 0))
+        val cut = read("deye-1p", registers + mapOf(0x00C2 to 0, 0x0096 to 0, 0x004F to 0, 0x00A9 to 0))
         assertTrue(GridAnalyzer.evaluate(cut)!!.gridDown)
     }
 
     @Test
     fun everyRegisterTheMapUsesIsInARequestedBlock() {
-        for (layout in DeyeLayout.entries) {
-            val covered = layout.blocks.flatMap { it.start..it.end }.associateWith { 1 }
-            val keys = DeyeRegisters.metrics(layout, covered).map { it.key }.toSet()
+        for (id in DEYE) {
+            val covered = TestProfiles.profile(id).blocks.flatMap { it.start..it.end }.associateWith { 1 }
+            val keys = metrics(id, covered).map { it.key }.toSet()
             val expected = setOf(
                 "GRID_RELAY_ST1", "G_V_L1", "PG_F1", "PG_Pt1", "B_P1", "B_left_cap1", "B_V1", "B_T1", "AC_T",
                 "S_P_T", "E_Puse_t1", "BRC", "Etdy_cg1", "Etdy_dcg1", "Etdy_pu1", "Etdy_gn1", "Etdy_use1", "Etdy_ge1"
             )
-            assertTrue("$layout misses ${expected - keys}", keys.containsAll(expected))
+            assertTrue("$id misses ${expected - keys}", keys.containsAll(expected))
         }
     }
 
     @Test
     fun blocksStayWithinWhatOneModbusRequestCanCarry() {
-        for (layout in DeyeLayout.entries) {
-            assertTrue(layout.blocks.all { it.count in 1..125 })
+        for (id in DEYE) {
+            assertTrue(TestProfiles.profile(id).blocks.all { it.count in 1..125 })
         }
     }
 
     @Test
     fun aMissingBlockLeavesItsValuesOutInsteadOfZero() {
-        val keys = DeyeRegisters.metrics(DeyeLayout.THREE_PHASE_LV, sg05Outage - 0x0066).map { it.key }
+        val keys = metrics("deye-3p-lv", sg05Outage - 0x0066).map { it.key }
         assertFalse("BRC" in keys)
-        assertNull(read(DeyeLayout.THREE_PHASE_LV, sg05Outage - 0x0066).batteryCapacityAh)
+        assertNull(read("deye-3p-lv", sg05Outage - 0x0066).batteryCapacityAh)
     }
 
     @Test
@@ -235,7 +239,7 @@ class DeyeRegistersTest {
         val before = Locale.getDefault()
         try {
             Locale.setDefault(Locale.forLanguageTag("ur-PK"))
-            val reading = read(DeyeLayout.THREE_PHASE_LV, sg05Outage)
+            val reading = read("deye-3p-lv", sg05Outage)
             assertEquals(52.56, reading.batteryVoltage!!, 0.001)
         } finally {
             Locale.setDefault(before)
@@ -244,11 +248,14 @@ class DeyeRegistersTest {
 
     @Test
     fun deviceTypesPickTheLayoutHaSolarmanWould() {
-        assertEquals(DeyeLayout.THREE_PHASE_LV, DeyeLayout.fromDeviceType(0x0005))
-        assertEquals(DeyeLayout.THREE_PHASE_LV, DeyeLayout.fromDeviceType(0x0500))
-        assertEquals(DeyeLayout.THREE_PHASE_HV, DeyeLayout.fromDeviceType(0x0006))
-        assertEquals(DeyeLayout.SINGLE_PHASE, DeyeLayout.fromDeviceType(0x0003))
-        assertNull("string inverter", DeyeLayout.fromDeviceType(0x0002))
-        assertNull("microinverter", DeyeLayout.fromDeviceType(0x0004))
+        val catalog = TestProfiles.catalog
+        assertEquals("deye-3p-lv", catalog.detect(0x0005)?.id)
+        assertEquals("deye-3p-lv", catalog.detect(0x0500)?.id)
+        assertEquals("deye-3p-hv", catalog.detect(0x0006)?.id)
+        assertEquals("deye-3p-hv", catalog.detect(0x0601)?.id)
+        assertEquals("deye-1p", catalog.detect(0x0003)?.id)
+        assertEquals("deye-1p", catalog.detect(0x0104)?.id)
+        assertNull("string inverter", catalog.detect(0x0002))
+        assertNull("microinverter", catalog.detect(0x0004))
     }
 }

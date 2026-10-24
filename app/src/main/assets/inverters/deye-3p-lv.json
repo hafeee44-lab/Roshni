@@ -1,0 +1,285 @@
+{
+  "id": "deye-3p-lv",
+  "label": "Deye three-phase LV hybrid",
+  "models": [
+    {
+      "brand": "Deye",
+      "name": "SUN-5–12K-SG04LP3, SUN-5–25K-SG05LP3 (three-phase, 48 V battery)"
+    },
+    {
+      "brand": "Sunsynk",
+      "name": "Three-phase LV hybrid 8–12 kW (SG04LP3 based)"
+    }
+  ],
+  "source": "ha-solarman deye_p3.yaml (David Rapan, MIT), from Deye MODBUS RTU V105.1 and V104.3 SG01-HP3",
+  "verified": "device",
+  "notes": "Live-tested on a SUN-12K-SG05LP3 (device type 0x0005) through an LSW-3 logger, 24 Oct 2026, against the Solarman app.",
+  "detect": [
+    5,
+    1280
+  ],
+  "blocks": [
+    {
+      "start": "0x0202",
+      "count": 39
+    },
+    {
+      "start": "0x024A",
+      "count": 90
+    },
+    {
+      "start": "0x02B2",
+      "count": 1
+    },
+    {
+      "start": "0x0066",
+      "count": 1,
+      "optional": true
+    }
+  ],
+  "metrics": [
+    {
+      "key": "GRID_RELAY_ST1",
+      "name": "Grid Relay Status",
+      "reg": [
+        "0x0228"
+      ],
+      "bit": 2,
+      "text": {
+        "0": "Open",
+        "1": "Closed"
+      }
+    },
+    {
+      "key": "G_V_L1",
+      "name": "Grid Voltage L1",
+      "unit": "V",
+      "reg": [
+        "0x0256"
+      ],
+      "scale": 0.1
+    },
+    {
+      "key": "G_V_L2",
+      "name": "Grid Voltage L2",
+      "unit": "V",
+      "reg": [
+        "0x0257"
+      ],
+      "scale": 0.1
+    },
+    {
+      "key": "G_V_L3",
+      "name": "Grid Voltage L3",
+      "unit": "V",
+      "reg": [
+        "0x0258"
+      ],
+      "scale": 0.1
+    },
+    {
+      "key": "PG_F1",
+      "name": "Grid Frequency",
+      "unit": "Hz",
+      "reg": [
+        "0x0261"
+      ],
+      "scale": 0.01
+    },
+    {
+      "key": "PG_Pt1",
+      "name": "Total Grid Power",
+      "unit": "W",
+      "reg": [
+        "0x0271",
+        "0x02B2"
+      ],
+      "signed": true
+    },
+    {
+      "key": "B_P1",
+      "name": "Battery Power",
+      "unit": "W",
+      "reg": [
+        "0x024E"
+      ],
+      "signed": true,
+      "scale": 1
+    },
+    {
+      "key": "B_left_cap1",
+      "name": "SoC",
+      "unit": "%",
+      "reg": [
+        "0x024C"
+      ]
+    },
+    {
+      "key": "B_V1",
+      "name": "Battery Voltage",
+      "unit": "V",
+      "reg": [
+        "0x024B"
+      ],
+      "scale": 0.01
+    },
+    {
+      "key": "B_T1",
+      "name": "Temperature- Battery",
+      "unit": "℃",
+      "reg": [
+        "0x024A"
+      ],
+      "offset": 1000,
+      "scale": 0.1
+    },
+    {
+      "key": "AC_T",
+      "name": "AC Temperature",
+      "unit": "℃",
+      "reg": [
+        "0x021D"
+      ],
+      "signed": true,
+      "offset": 1000,
+      "scale": 0.1
+    },
+    {
+      "key": "S_P_T",
+      "name": "Total Solar Power",
+      "unit": "W",
+      "scale": 1,
+      "sum": [
+        {
+          "reg": [
+            "0x02A0"
+          ]
+        },
+        {
+          "reg": [
+            "0x02A1"
+          ]
+        },
+        {
+          "reg": [
+            "0x02A2"
+          ]
+        },
+        {
+          "reg": [
+            "0x02A3"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "E_Puse_t1",
+      "name": "Total Consumption Power",
+      "unit": "W",
+      "reg": [
+        "0x028D",
+        "0x0293"
+      ],
+      "signed": true
+    },
+    {
+      "key": "BRC",
+      "name": "Battery Rated Capacity",
+      "unit": "Ah",
+      "reg": [
+        "0x0066"
+      ],
+      "optional": true
+    },
+    {
+      "key": "Etdy_cg1",
+      "name": "Daily Charging Energy",
+      "unit": "kWh",
+      "reg": [
+        "0x0202"
+      ],
+      "scale": 0.1
+    },
+    {
+      "key": "Etdy_dcg1",
+      "name": "Daily Discharging Energy",
+      "unit": "kWh",
+      "reg": [
+        "0x0203"
+      ],
+      "scale": 0.1
+    },
+    {
+      "key": "Etdy_pu1",
+      "name": "Daily Energy Purchased",
+      "unit": "kWh",
+      "reg": [
+        "0x0208"
+      ],
+      "scale": 0.1
+    },
+    {
+      "key": "Etdy_gn1",
+      "name": "Daily Grid Feed-in",
+      "unit": "kWh",
+      "reg": [
+        "0x0209"
+      ],
+      "scale": 0.1
+    },
+    {
+      "key": "Etdy_use1",
+      "name": "Daily Consumption",
+      "unit": "kWh",
+      "scale": 0.1,
+      "floor": 0,
+      "sum": [
+        {
+          "reg": [
+            "0x0208"
+          ]
+        },
+        {
+          "reg": [
+            "0x0211"
+          ]
+        },
+        {
+          "reg": [
+            "0x0203"
+          ]
+        },
+        {
+          "reg": [
+            "0x0202"
+          ],
+          "subtract": true
+        },
+        {
+          "reg": [
+            "0x0209"
+          ],
+          "subtract": true
+        }
+      ]
+    },
+    {
+      "key": "Etdy_load1",
+      "name": "Daily Load-Port Consumption",
+      "unit": "kWh",
+      "reg": [
+        "0x020E"
+      ],
+      "scale": 0.1
+    },
+    {
+      "key": "Etdy_ge1",
+      "name": "Daily Production",
+      "unit": "kWh",
+      "reg": [
+        "0x0211"
+      ],
+      "scale": 0.1
+    }
+  ]
+}

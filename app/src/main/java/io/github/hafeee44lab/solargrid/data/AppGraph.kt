@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import io.github.hafeee44lab.solargrid.data.demo.DemoInverter
 import io.github.hafeee44lab.solargrid.data.local.LocalSource
 import io.github.hafeee44lab.solargrid.data.local.LoggerStore
+import io.github.hafeee44lab.solargrid.data.local.ProfileCatalog
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -21,6 +22,9 @@ class AppGraph private constructor(context: Context) {
     val settings = SettingsStore(app)
     val accounts = AccountStore(app)
     val loggers = LoggerStore(app)
+
+    /** The bundled inverter register maps for the local-network source. */
+    val inverterProfiles: ProfileCatalog by lazy { ProfileCatalog.fromAssets(app.assets) }
 
     private val states = HashMap<Profile, StateStore>()
     private val histories = HashMap<Profile, HistoryDb>()
@@ -107,7 +111,7 @@ class AppGraph private constructor(context: Context) {
         val s = settings.load()
         if (s.demoMode) return DemoSource(demo)
         return when (s.source) {
-            DataSource.LOCAL -> loggers.load()?.let { LocalSource(it) }
+            DataSource.LOCAL -> loggers.load()?.let { LocalSource(it, inverterProfiles) }
             DataSource.CLOUD -> accounts.load()?.let { SolarmanSource(it, state(Profile.LIVE)) }
         }
     }

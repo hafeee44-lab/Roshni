@@ -47,7 +47,8 @@ import io.github.hafeee44lab.solargrid.ui.theme.SolarType
 import kotlinx.coroutines.launch
 
 /**
- * The logger's IP address and serial, filled in by hand or by a broadcast scan. Connecting does
+ * The logger's IP address and serial, filled in by hand or by a broadcast scan, and the inverter
+ * model behind it (detected for Deye-made inverters, picked for the rest). Connecting does
  * one trial read first; if the logger can't be reached right now it can still be saved.
  * Shared by onboarding and Settings.
  */
@@ -58,6 +59,7 @@ fun LoggerForm(vm: MainViewModel, initial: LocalLogger?, onDone: () -> Unit) {
 
     var host by rememberSaveable { mutableStateOf(initial?.host ?: "") }
     var serial by rememberSaveable { mutableStateOf(initial?.serial?.toString() ?: "") }
+    var profileId by rememberSaveable { mutableStateOf(initial?.profileId) }
     var busy by remember { mutableStateOf(false) }
     var scanning by remember { mutableStateOf(false) }
     var found by remember { mutableStateOf<List<FoundLogger>?>(null) }
@@ -110,6 +112,13 @@ fun LoggerForm(vm: MainViewModel, initial: LocalLogger?, onDone: () -> Unit) {
         SolarField(stringResource(R.string.logger_serial), serial, { serial = it; failedDraft = null }, keyboard = KeyboardType.Number)
         if (serial.isNotBlank() && parsedSerial == null) Text(stringResource(R.string.invalid_serial), style = SolarType.caption, color = c.down)
 
+        InverterModelRow(
+            vm = vm,
+            draft = parsedSerial?.takeIf { hostOk }?.let { LocalLogger(host = host.trim(), serial = it) },
+            profileId = profileId,
+            onPick = { profileId = it; failedDraft = null }
+        )
+
         TextButton(onClick = { help = !help }, contentPadding = PaddingValues(horizontal = 0.dp)) {
             Icon(Icons.Info, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
@@ -127,7 +136,7 @@ fun LoggerForm(vm: MainViewModel, initial: LocalLogger?, onDone: () -> Unit) {
             text = stringResource(if (busy) R.string.connecting_logger else R.string.connect_logger),
             enabled = !busy && hostOk && parsedSerial != null,
             onClick = {
-                val draft = LocalLogger(host = host.trim(), serial = parsedSerial ?: return@PrimaryButton)
+                val draft = LocalLogger(host = host.trim(), serial = parsedSerial ?: return@PrimaryButton, profileId = profileId)
                 busy = true
                 error = null
                 failedDraft = null

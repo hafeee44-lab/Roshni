@@ -1,0 +1,31 @@
+{
+  "id": "sofar-hyd-es",
+  "label": "Sofar HYD-ES / ME3000",
+  "models": [
+    {"brand": "Sofar", "name": "HYD 3000–6000-ES"},
+    {"brand": "Sofar", "name": "ME 3000-SP (AC-coupled storage)"},
+    {"brand": "ZCS Azzurro", "name": "3000SP"}
+  ],
+  "source": "ha-solarman inverter_definitions by David Rapan and contributors (MIT): sofar_hybrid.yaml, from SOFARSOLAR ModBus-RTU Communication Protocol",
+  "verified": "documentation",
+  "notes": "Signs follow ha-solarman, which was tested on these models; Sofar's document for this generation doesn't state them. Grid state: device state 5 is emergency power supply (off-grid), 2 and 4 are charging and discharging on-grid.",
+  "metrics": [
+    {"key": "GRID_RELAY_ST1", "name": "Grid Relay Status", "reg": ["0x0200"], "text": {"2": "Closed", "4": "Closed", "5": "Open"}},
+    {"key": "G_V_L1", "name": "Grid Voltage L1", "unit": "V", "reg": ["0x0206"], "scale": 0.1},
+    {"key": "PG_F1", "name": "Grid Frequency", "unit": "Hz", "reg": ["0x020C"], "scale": 0.01},
+    {"key": "PG_Pt1", "name": "Total Grid Power", "unit": "W", "reg": ["0x0212"], "signed": true, "scale": 10},
+    {"key": "B_P1", "name": "Battery Power", "unit": "W", "reg": ["0x020D"], "signed": true, "scale": 10},
+    {"key": "B_left_cap1", "name": "SoC", "unit": "%", "reg": ["0x0210"]},
+    {"key": "B_V1", "name": "Battery Voltage", "unit": "V", "reg": ["0x020E"], "scale": 0.01},
+    {"key": "B_T1", "name": "Temperature- Battery", "unit": "℃", "reg": ["0x0211"]},
+    {"key": "AC_T", "name": "AC Temperature", "unit": "℃", "reg": ["0x0238"], "signed": true},
+    {"key": "S_P_T", "name": "Total Solar Power", "unit": "W", "reg": ["0x0215"], "scale": 10},
+    {"key": "E_Puse_t1", "name": "Total Consumption Power", "unit": "W", "reg": ["0x0213"], "scale": 10},
+    {"key": "Etdy_ge1", "name": "Daily Production", "unit": "kWh", "reg": ["0x0218"], "scale": 0.01},
+    {"key": "Etdy_gn1", "name": "Daily Grid Feed-in", "unit": "kWh", "reg": ["0x0219"], "scale": 0.01},
+    {"key": "Etdy_pu1", "name": "Daily Energy Purchased", "unit": "kWh", "reg": ["0x021A"], "scale": 0.01},
+    {"key": "Etdy_use1", "name": "Daily Consumption", "unit": "kWh", "reg": ["0x021B"], "scale": 0.01},
+    {"key": "Etdy_cg1", "name": "Daily Charging Energy", "unit": "kWh", "reg": ["0x0224"], "scale": 0.01},
+    {"key": "Etdy_dcg1", "name": "Daily Discharging Energy", "unit": "kWh", "reg": ["0x0225"], "scale": 0.01}
+  ]
+}

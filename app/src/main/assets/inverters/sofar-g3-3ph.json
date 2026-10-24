@@ -1,0 +1,32 @@
+{
+  "id": "sofar-g3-3ph",
+  "label": "Sofar G3 three-phase hybrid",
+  "models": [
+    {"brand": "Sofar", "name": "HYD 5–20KTL-3PH"},
+    {"brand": "ZCS Azzurro", "name": "3PH HYD5000–20000 ZSS"}
+  ],
+  "source": "ha-solarman inverter_definitions by David Rapan and contributors (MIT): sofar_g3hyd.yaml and sofar_g3.yaml, from SOFAR Modbus Protocol G3 V1.22",
+  "verified": "documentation",
+  "notes": "Sofar reports battery power positive while charging and grid power positive while exporting (G3 protocol V1.22); both are flipped here to Roshni's convention. Grid state comes from the inverter status register 0x0404: 2 on-grid, 3 emergency power supply.",
+  "metrics": [
+    {"key": "GRID_RELAY_ST1", "name": "Grid Relay Status", "reg": ["0x0404"], "text": {"2": "Closed", "3": "Open"}},
+    {"key": "G_V_L1", "name": "Grid Voltage L1", "unit": "V", "reg": ["0x048D"], "scale": 0.1},
+    {"key": "G_V_L2", "name": "Grid Voltage L2", "unit": "V", "reg": ["0x0498"], "scale": 0.1},
+    {"key": "G_V_L3", "name": "Grid Voltage L3", "unit": "V", "reg": ["0x04A3"], "scale": 0.1},
+    {"key": "PG_F1", "name": "Grid Frequency", "unit": "Hz", "reg": ["0x0484"], "scale": 0.01},
+    {"key": "PG_Pt1", "name": "Total Grid Power", "unit": "W", "reg": ["0x0488"], "signed": true, "scale": -10},
+    {"key": "B_P1", "name": "Battery Power", "unit": "W", "reg": ["0x0606"], "signed": true, "scale": -10},
+    {"key": "B_left_cap1", "name": "SoC", "unit": "%", "reg": ["0x0608"]},
+    {"key": "B_V1", "name": "Battery Voltage", "unit": "V", "reg": ["0x0604"], "scale": 0.1},
+    {"key": "B_T1", "name": "Temperature- Battery", "unit": "℃", "reg": ["0x0607"], "signed": true},
+    {"key": "AC_T", "name": "AC Temperature", "unit": "℃", "reg": ["0x041A"], "signed": true},
+    {"key": "S_P_T", "name": "Total Solar Power", "unit": "W", "reg": ["0x05C4"], "scale": 100},
+    {"key": "E_Puse_t1", "name": "Total Consumption Power", "unit": "W", "reg": ["0x04AF"], "signed": true, "scale": 10},
+    {"key": "Etdy_ge1", "name": "Daily Production", "unit": "kWh", "reg": ["0x0685", "0x0684"], "scale": 0.01},
+    {"key": "Etdy_use1", "name": "Daily Consumption", "unit": "kWh", "reg": ["0x0689", "0x0688"], "scale": 0.01},
+    {"key": "Etdy_pu1", "name": "Daily Energy Purchased", "unit": "kWh", "reg": ["0x068D", "0x068C"], "scale": 0.01},
+    {"key": "Etdy_gn1", "name": "Daily Grid Feed-in", "unit": "kWh", "reg": ["0x0691", "0x0690"], "scale": 0.01},
+    {"key": "Etdy_cg1", "name": "Daily Charging Energy", "unit": "kWh", "reg": ["0x0695", "0x0694"], "scale": 0.01},
+    {"key": "Etdy_dcg1", "name": "Daily Discharging Energy", "unit": "kWh", "reg": ["0x0699", "0x0698"], "scale": 0.01}
+  ]
+}
