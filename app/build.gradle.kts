@@ -33,8 +33,8 @@ android {
         applicationId = "io.github.hafeee44lab.solargrid"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "2.2.0"
+        versionCode = 5
+        versionName = "2.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
