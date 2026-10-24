@@ -1,0 +1,1 @@
+{"success":true,"failCode":0,"message":null,"params":{"devIds":"1000000033607999","devTypeId":39},"data":[{"devId":1000000033607999,"sn":null,"dataItemMap":{"battery_soc":72.0,"ch_discharge_power":-1800.0,"busbar_u":422.6,"charge_cap":1.2,"discharge_cap":3.4,"run_state":1,"battery_status":2}}]}

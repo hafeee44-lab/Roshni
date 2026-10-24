@@ -2,6 +2,12 @@ package io.github.hafeee44lab.solargrid.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.hafeee44lab.solargrid.data.cloud.BrandAccountStore
+import io.github.hafeee44lab.solargrid.data.cloud.CallSpacing
+import io.github.hafeee44lab.solargrid.data.cloud.CloudBrand
+import io.github.hafeee44lab.solargrid.data.cloud.CloudSources
+import io.github.hafeee44lab.solargrid.data.cloud.SpacedSource
+import io.github.hafeee44lab.solargrid.data.cloud.StateSessionCache
 import io.github.hafeee44lab.solargrid.data.demo.DemoInverter
 import io.github.hafeee44lab.solargrid.data.local.LocalSource
 import io.github.hafeee44lab.solargrid.data.local.LoggerStore
@@ -22,6 +28,7 @@ class AppGraph private constructor(context: Context) {
     val settings = SettingsStore(app)
     val accounts = AccountStore(app)
     val loggers = LoggerStore(app)
+    val brandAccounts = BrandAccountStore(app)
 
     /** The bundled inverter register maps for the local-network source. */
     val inverterProfiles: ProfileCatalog by lazy { ProfileCatalog.fromAssets(app.assets) }
@@ -112,8 +119,21 @@ class AppGraph private constructor(context: Context) {
         if (s.demoMode) return DemoSource(demo)
         return when (s.source) {
             DataSource.LOCAL -> loggers.load()?.let { LocalSource(it, inverterProfiles) }
-            DataSource.CLOUD -> accounts.load()?.let { SolarmanSource(it, state(Profile.LIVE)) }
+            DataSource.CLOUD -> cloudSource(s.cloudBrand)
         }
+    }
+
+    private val spacings = HashMap<String, CallSpacing>()
+
+    private fun cloudSource(brand: CloudBrand): ReadingSource? {
+        if (brand == CloudBrand.SOLARMAN) return accounts.load()?.let { SolarmanSource(it, state(Profile.LIVE)) }
+        val account = brandAccounts.load()?.takeIf { it.brand == brand } ?: return null
+        val source = CloudSources.create(account, StateSessionCache(state(Profile.LIVE), brand)) ?: return null
+        // Sources are made fresh for every poll, so the spacing that guards the brand's rate limit lives here.
+        val spacing = synchronized(spacings) {
+            spacings.getOrPut("${brand.name}|${account.device}") { CallSpacing(brand.minPollMs) }
+        }
+        return SpacedSource(source, spacing)
     }
 
     companion object {

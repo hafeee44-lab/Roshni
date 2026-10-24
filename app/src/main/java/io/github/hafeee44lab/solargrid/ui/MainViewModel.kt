@@ -25,6 +25,9 @@ import io.github.hafeee44lab.solargrid.data.Profile
 import io.github.hafeee44lab.solargrid.data.Sample
 import io.github.hafeee44lab.solargrid.data.SolarSnapshot
 import io.github.hafeee44lab.solargrid.data.SolarmanSource
+import io.github.hafeee44lab.solargrid.data.cloud.BrandAccount
+import io.github.hafeee44lab.solargrid.data.cloud.CloudBrand
+import io.github.hafeee44lab.solargrid.data.cloud.CloudSources
 import io.github.hafeee44lab.solargrid.data.changes
 import io.github.hafeee44lab.solargrid.data.local.FoundLogger
 import io.github.hafeee44lab.solargrid.data.local.Detection
@@ -85,6 +88,7 @@ data class UiState(
     val settings: AppSettings = AppSettings(),
     val account: Account? = null,
     val logger: LocalLogger? = null,
+    val brandAccount: BrandAccount? = null,
     val snapshot: SolarSnapshot = SolarSnapshot(),
     val home: HomeUi = buildHomeUi(SolarSnapshot(), false),
     val dump: String = "",
@@ -151,15 +155,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private data class Sources(val settings: AppSettings, val account: Account?, val logger: LocalLogger?)
+    private data class Sources(val settings: AppSettings, val account: Account?, val logger: LocalLogger?, val brandAccount: BrandAccount?)
 
     private val settingsFlow: Flow<Sources> =
         combine(
             graph.settings.prefs.changes(),
             graph.app.getSharedPreferences("account", 0).changes(),
-            graph.loggers.prefs.changes()
-        ) { _, _, _ ->
-            Sources(graph.settings.load(), graph.accounts.load(), graph.loggers.load())
+            graph.loggers.prefs.changes(),
+            graph.brandAccounts.prefs.changes()
+        ) { _, _, _, _ ->
+            Sources(graph.settings.load(), graph.accounts.load(), graph.loggers.load(), graph.brandAccounts.load())
         }.flowOn(Dispatchers.IO)
 
     private fun profileData(profile: Profile): Flow<ProfileData> {
@@ -188,7 +193,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     val state: StateFlow<UiState> = settingsFlow
-        .flatMapLatest { (settings, account, logger) ->
+        .flatMapLatest { (settings, account, logger, brandAccount) ->
             combine(profileData(settings.profile), ticker) { data, _ ->
                 // Read the clock here, not from the ticker: a reading newer than the last tick
                 // would otherwise come out with a negative age.
@@ -199,6 +204,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     settings = settings,
                     account = account,
                     logger = logger,
+                    brandAccount = brandAccount,
                     snapshot = data.snapshot,
                     home = buildHomeUi(data.snapshot, settings.monitoring, now, graph.app.phrases()),
                     dump = data.dump,
@@ -298,14 +304,52 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             graph.accounts.save(account)
             graph.state(Profile.LIVE).token = null
-            graph.settings.update { it.copy(demoMode = false, source = DataSource.CLOUD) }
+            graph.settings.update { it.copy(demoMode = false, source = DataSource.CLOUD, cloudBrand = CloudBrand.SOLARMAN) }
             withContext(Dispatchers.Main) { refresh() }
+        }
+    }
+
+    suspend fun discoverBrand(brand: CloudBrand, fields: Map<String, String>): Result<List<DiscoveredDevice>> =
+        withContext(Dispatchers.IO) { CloudSources.discover(brand, fields) }
+
+    fun saveBrandAccount(account: BrandAccount) {
+        viewModelScope.launch(Dispatchers.IO) {
+            graph.brandAccounts.save(account)
+            graph.state(Profile.LIVE).token = null
+            graph.settings.update { it.copy(demoMode = false, source = DataSource.CLOUD, cloudBrand = account.brand) }
+            withContext(Dispatchers.Main) { refresh() }
+        }
+    }
+
+    /** Switch to a cloud brand that is already set up (Solarman or the saved brand account). */
+    fun useCloudBrand(brand: CloudBrand) {
+        val current = graph.settings.load()
+        if (current.source == DataSource.CLOUD && current.cloudBrand == brand) return
+        viewModelScope.launch(Dispatchers.IO) {
+            graph.state(Profile.LIVE).token = null
+            graph.settings.update { it.copy(demoMode = false, source = DataSource.CLOUD, cloudBrand = brand) }
+            withContext(Dispatchers.Main) { refresh() }
+        }
+    }
+
+    fun forgetBrandAccount() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val wasActive = graph.settings.load().let { it.source == DataSource.CLOUD && it.cloudBrand != CloudBrand.SOLARMAN }
+            graph.brandAccounts.clear()
+            if (wasActive) {
+                graph.state(Profile.LIVE).token = null
+                graph.settings.update { it.copy(cloudBrand = CloudBrand.SOLARMAN) }
+                withContext(Dispatchers.Main) { setMonitoring(false) }
+            }
         }
     }
 
     fun signOut() {
         viewModelScope.launch(Dispatchers.IO) {
             graph.accounts.clear()
+            val s = graph.settings.load()
+            // Signing out of Solarman while another brand is the live source leaves that brand running.
+            if (s.source == DataSource.CLOUD && s.cloudBrand != CloudBrand.SOLARMAN) return@launch
             graph.state(Profile.LIVE).clear()
             withContext(Dispatchers.Main) { setMonitoring(false) }
         }

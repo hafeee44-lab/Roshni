@@ -21,8 +21,9 @@ object PollPolicy {
     const val LOCAL_ERROR_MAX_MS = 5 * 60_000L
 
     /**
-     * When to ask Solarman next. Every call counts against the App ID's allowance, so this never
-     * asks faster than the inverter can upload something new.
+     * When to ask the cloud next. Every call counts against an allowance, so this never asks
+     * faster than the inverter can upload something new, nor faster than [floorMs], the brand's
+     * own rate limit.
      */
     fun nextDelayMs(
         gridDown: Boolean?,
@@ -30,7 +31,18 @@ object PollPolicy {
         errorStreak: Int,
         learnedUploadMs: Long?,
         msSinceInverterUpload: Long,
-        quotaExhausted: Boolean = false
+        quotaExhausted: Boolean = false,
+        floorMs: Long = 0L
+    ): Long = cloudDelayMs(gridDown, msSinceStateChange, errorStreak, learnedUploadMs, msSinceInverterUpload, quotaExhausted)
+        .coerceAtLeast(floorMs)
+
+    private fun cloudDelayMs(
+        gridDown: Boolean?,
+        msSinceStateChange: Long,
+        errorStreak: Int,
+        learnedUploadMs: Long?,
+        msSinceInverterUpload: Long,
+        quotaExhausted: Boolean
     ): Long {
         // Out of allowance: more calls only fail and can delay Solarman lifting the block.
         if (quotaExhausted) return QUOTA_BACKOFF_MS

@@ -1,6 +1,7 @@
 package io.github.hafeee44lab.solargrid.data
 
 import io.github.hafeee44lab.solargrid.R
+import io.github.hafeee44lab.solargrid.data.cloud.CloudBrand
 import io.github.hafeee44lab.solargrid.domain.Event
 import io.github.hafeee44lab.solargrid.domain.EventKind
 import io.github.hafeee44lab.solargrid.domain.GridAnalyzer
@@ -31,7 +32,7 @@ class HistoryImport(private val graph: AppGraph) {
 
     suspend fun runIfDue(force: Boolean = false): Outcome {
         val settings = graph.settings.load()
-        if (settings.demoMode || settings.source != DataSource.CLOUD) return Outcome.Skipped
+        if (settings.demoMode || settings.source != DataSource.CLOUD || settings.cloudBrand != CloudBrand.SOLARMAN) return Outcome.Skipped
         val account = graph.accounts.load() ?: return Outcome.Skipped
         val state = graph.state(Profile.LIVE)
         val prefs = state.prefs

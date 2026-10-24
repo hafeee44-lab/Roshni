@@ -1,0 +1,1 @@
+{"error_code":0,"error_msg":"Success","data":{"mix_sn":"SPH0000001","time":"2026-10-24 12:30:00","bmsSOC":75,"vbat":52.4,"vac1":230.0,"fac":50.0,"pcharge1":1200,"pdischarge1":0,"pacToUserR":200,"pacToGridTotal":0,"ppv1":800,"ppv2":700,"ppv":1500,"temp1":35.0,"epvtoday":8.0,"elocalLoadToday":9.0,"etoUserToday":1.5,"etoGridToday":2.0,"echarge1Today":5.0,"edischarge1Today":3.0}}

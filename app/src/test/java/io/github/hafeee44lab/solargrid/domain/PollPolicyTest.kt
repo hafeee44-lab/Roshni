@@ -143,4 +143,15 @@ class PollPolicyTest {
             assertTrue(PollPolicy.nextLocalDelayMs(true, 0L, streak) >= PollPolicy.LOCAL_MIN_MS)
         }
     }
+
+    @Test
+    fun aBrandFloorHoldsEvenDuringACutAndAfterErrors() {
+        val floor = 5 * 60_000L
+        // During a cut with no learned cadence Solarman would be asked every 90 s.
+        assertEquals(floor, PollPolicy.nextDelayMs(true, 0L, 0, null, -1L, floorMs = floor))
+        assertEquals(floor, PollPolicy.nextDelayMs(null, Long.MAX_VALUE, errorStreak = 1, learnedUploadMs = null, msSinceInverterUpload = -1L, floorMs = floor))
+        // Longer waits are left alone.
+        assertEquals(PollPolicy.QUOTA_BACKOFF_MS, PollPolicy.nextDelayMs(true, 0L, 0, null, -1L, quotaExhausted = true, floorMs = floor))
+        assertEquals(PollPolicy.ERROR_MAX_MS, PollPolicy.nextDelayMs(null, Long.MAX_VALUE, 10, null, -1L, floorMs = floor))
+    }
 }

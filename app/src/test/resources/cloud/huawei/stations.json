@@ -1,0 +1,1 @@
+{"success":true,"failCode":0,"message":"get plant list success","data":{"list":[{"plantCode":"NE=33607111","plantName":"Ghar","plantAddress":"Attock","capacity":10.0}],"pageCount":1,"pageNo":1,"pageSize":100,"total":1}}

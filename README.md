@@ -57,9 +57,22 @@ Built for places where load-shedding is part of the day. Your inverter already s
 
 ## Does it work with my inverter?
 
-If your inverter reports to **Solarman** (SOLARMAN Smart / SOLARMAN Business), it probably works. That covers many Deye, Sunsynk, Sol-Ark and other hybrids with a Solarman Wi-Fi stick.
+Roshni reads the cloud your inverter's Wi-Fi stick already reports to. Pick your brand under **Settings → Data source → Cloud** (or during setup); each brand asks only for what it needs.
 
-It has been tested on a **Deye three-phase low-voltage hybrid (SG05)**. Metrics are found by their known key first and by their human-readable name second, so other models usually work out of the box. If yours doesn't, open **Settings → Inverter data**, copy the dump, and attach it to an issue.
+| Brand / app | How Roshni reads it | What you need | Checked against |
+|---|---|---|---|
+| **Solarman** (SOLARMAN Smart / Business: Deye, Sunsynk, Sol-Ark and other hybrids with a Solarman stick) | Official OpenAPI | App ID and secret from Solarman support, plus your Solarman login | A real Deye SG05 three-phase hybrid |
+| **Solarman stick on your Wi-Fi** | The stick itself (Solarman V5, local network) | The stick's IP and serial | A real Deye SG05 |
+| **Growatt** (ShinePhone / ShineServer: SPH, MIN-XH, MOD-XH, SPF) | Official OpenAPI V1 with an API token; or the unofficial ShinePhone login, needed for SPF off-grid units | API token (ShineServer → Settings → Account management → API key), or your ShinePhone username and password | Only synthetic replies built from open-source clients' field names |
+| **Huawei FusionSolar** (SUN2000 + LUNA2000) | Official Northbound API | An API account your installer creates (Company management → Northbound management). The kiosk link isn't enough: it has no grid or battery data | Only synthetic replies |
+| **SolisCloud** | Official API, HMAC-signed | KeyID and KeySecret from soliscloud.com → API management, after a free service ticket to Solis | Only synthetic replies; the request signing matches a reference implementation |
+| **SmartESS / WatchPower / DESS Monitor** (Voltronic / Axpert family: Inverex, Fronus, Knox and other rebrands) | Unofficial: the apps' own DESS Monitor API | Your SmartESS or WatchPower (Wi-Fi) username and password | Two real replies recorded by [ha-dessmonitor](https://github.com/andreas-glaser/ha-dessmonitor), plus synthetic ones for a cut |
+
+"Only synthetic replies" means the mapping and the grid-on/off decision are unit-tested, but nobody has yet pointed Roshni at a real account of that brand. Expect rough edges there, and please report what you see.
+
+Roshni respects each cloud's limits: Growatt is asked at most every 5 minutes (its own rule), Huawei and DESS every 2, Solis every minute, and a manual refresh inside that window reuses the last answer instead of calling again. Each cloud only refreshes as often as the Wi-Fi stick uploads, usually every 5 minutes, so an alarm can lag a cut by that much.
+
+Metrics are found by their known key first and by their human-readable name second, so other models usually work out of the box. If yours doesn't, open **Settings → Inverter data**, copy the dump, and attach it to an issue.
 
 ### Local network mode (no Solarman App ID)
 
@@ -83,6 +96,8 @@ The register maps are derived from [ha-solarman](https://github.com/davidrapan/h
 ## Getting started
 
 ### 1. Get Solarman OpenAPI credentials
+
+Using another brand? The table above says what it needs; the setup screen has the same help in English and Urdu. The rest of this step is for Solarman.
 
 The app talks to Solarman's official OpenAPI, which needs an **App ID** and **App Secret**. Solarman issues these free to plant owners on request. Contact Solarman support, say it's for monitoring your own plant, and include the email you sign in with. See Solarman's [OpenAPI FAQ](https://helpcenter.solarmanpv.com/portal/en/kb/articles/open-api-faq-summary).
 
@@ -140,14 +155,14 @@ Solarman OpenAPI ──► MonitorService (foreground, alarm-chained polling, wa
       StateStore (prefs) + HistoryDb (SQLite) ──► screens, widget, tile, notifications
 ```
 
-- **Polling adapts.** It aims just after the inverter's learned upload cadence (usually every 5 minutes), polls every 90 seconds during an outage, and backs off exponentially when Solarman is unreachable.
+- **Polling adapts.** It aims just after the inverter's learned upload cadence (usually every 5 minutes), polls every 90 seconds during an outage, and backs off exponentially when the cloud is unreachable. Other brands' clouds are never asked faster than their own limits allow.
 - **All the decision-making is pure Kotlin with no Android dependencies**, in `domain/`, and covered by unit tests. Start there if you want to change when or how the app alerts.
-- **Data stays on the phone.** There are no analytics and no accounts of our own. The only network traffic is to Solarman and, if you set one up, your own WhatsApp bridge. Details are in the [privacy policy](docs/PRIVACY.md).
+- **Data stays on the phone.** There are no analytics and no accounts of our own. The only network traffic is to your inverter brand's cloud (or the stick on your Wi-Fi) and, if you set one up, your own WhatsApp bridge. Details are in the [privacy policy](docs/PRIVACY.md).
 
 ```
 app/src/main/java/io/github/hafeee44lab/solargrid/
 ├── domain/    detection, alert planning, prediction, insights (pure + tested)
-├── data/      Solarman API, encrypted account store, settings, SQLite history, demo inverter
+├── data/      Solarman API, other brands' clouds (data/cloud), local logger, encrypted account stores, settings, SQLite history, demo inverter
 ├── service/   foreground monitor, notifications, alarm player, boot receiver, QS tile
 ├── widget/    Glance home-screen widget
 └── ui/        Compose screens, design system, charts and the power-flow diagram

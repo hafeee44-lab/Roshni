@@ -66,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.Account
 import io.github.hafeee44lab.solargrid.data.DataSource
+import io.github.hafeee44lab.solargrid.data.cloud.CloudBrand
 import io.github.hafeee44lab.solargrid.data.DiscoveredDevice
 import io.github.hafeee44lab.solargrid.domain.FlowPowers
 import io.github.hafeee44lab.solargrid.ui.LocalSystem
@@ -222,14 +223,18 @@ private fun Feature(icon: ImageVector, title: String, body: String) {
 @Composable
 private fun Connect(vm: MainViewModel, state: UiState, onBack: () -> Unit, onDone: () -> Unit) {
     var source by rememberSaveable { mutableStateOf(state.settings.source) }
+    var brand by rememberSaveable { mutableStateOf(state.settings.cloudBrand) }
     val ready = when (source) {
-        DataSource.CLOUD -> state.account != null
+        DataSource.CLOUD -> if (brand == CloudBrand.SOLARMAN) state.account != null else state.brandAccount?.brand == brand
         DataSource.LOCAL -> state.logger != null
     }
 
     StepScaffold(
         actions = {
-            if (ready) PrimaryButton(stringResource(R.string.continue_), { vm.useSource(source); onDone() }, Modifier.fillMaxWidth())
+            if (ready) PrimaryButton(stringResource(R.string.continue_), {
+                if (source == DataSource.CLOUD) vm.useCloudBrand(brand) else vm.useSource(source)
+                onDone()
+            }, Modifier.fillMaxWidth())
             TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back)) }
         }
     ) {
@@ -239,19 +244,32 @@ private fun Connect(vm: MainViewModel, state: UiState, onBack: () -> Unit, onDon
 
         when (source) {
             DataSource.CLOUD -> {
-                Text(
-                    stringResource(R.string.connect_solarman_body),
-                    style = SolarType.body,
-                    color = c.ink2,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                val existing = state.account
-                if (existing != null) {
-                    ListGroup(null) {
-                        SettingRow(stringResource(R.string.connected), subtitle = stringResource(R.string.connected_sub, existing.email, existing.deviceSn), icon = Icons.Check, iconTint = c.ok)
+                CloudBrandPicker(brand, { brand = it })
+                Spacer(Modifier.height(16.dp))
+                if (brand == CloudBrand.SOLARMAN) {
+                    Text(
+                        stringResource(R.string.connect_solarman_body),
+                        style = SolarType.body,
+                        color = c.ink2,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    val existing = state.account
+                    if (existing != null) {
+                        ListGroup(null) {
+                            SettingRow(stringResource(R.string.connected), subtitle = stringResource(R.string.connected_sub, existing.email, existing.deviceSn), icon = Icons.Check, iconTint = c.ok)
+                        }
+                    } else {
+                        AccountForm(vm = vm, initial = null, onDone = onDone)
                     }
                 } else {
-                    AccountForm(vm = vm, initial = null, onDone = onDone)
+                    val existing = state.brandAccount?.takeIf { it.brand == brand }
+                    if (existing != null) {
+                        ListGroup(null) {
+                            SettingRow(stringResource(R.string.connected), subtitle = stringResource(R.string.connected_sub, brand.title, existing.deviceName), icon = Icons.Check, iconTint = c.ok)
+                        }
+                    } else {
+                        BrandForm(vm = vm, brand = brand, initial = null, onDone = onDone)
+                    }
                 }
             }
             DataSource.LOCAL -> {

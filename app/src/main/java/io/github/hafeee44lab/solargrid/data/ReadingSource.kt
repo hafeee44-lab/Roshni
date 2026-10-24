@@ -37,8 +37,8 @@ sealed interface HistoryFetch {
     data class Failed(val message: String, val quotaExhausted: Boolean = false) : HistoryFetch
 }
 
-/** One inverter discovered on the account during onboarding. */
-data class DiscoveredDevice(val sn: String, val station: String, val online: Boolean?)
+/** One inverter discovered on the account during onboarding. [ref] is what the source needs to read it again. */
+data class DiscoveredDevice(val sn: String, val station: String, val online: Boolean?, val ref: String = sn)
 
 class SolarmanSource(
     private val account: Account,
