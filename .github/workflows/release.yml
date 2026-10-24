@@ -1,6 +1,7 @@
 name: Release
 
-# Push a tag like v2.1.0 to build a signed APK and publish it as a GitHub Release.
+# Push a tag like v2.1.0 to build a signed APK and app bundle and publish them as a GitHub Release.
+# The APK is for sideloading; the .aab is what gets uploaded to Google Play.
 on:
   push:
     tags: ['v*']
@@ -36,12 +37,12 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/roshni.jks"
           echo "ROSHNI_KEYSTORE=$RUNNER_TEMP/roshni.jks" >> "$GITHUB_ENV"
 
-      - name: Build the signed APK
+      - name: Build the signed APK and app bundle
         env:
           ROSHNI_KEYSTORE_PASSWORD: ${{ secrets.ROSHNI_KEYSTORE_PASSWORD }}
           ROSHNI_KEY_ALIAS: roshni
           ROSHNI_KEY_PASSWORD: ${{ secrets.ROSHNI_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease bundleRelease
 
       - name: Publish the release
         env:
@@ -49,12 +50,14 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           APK="Roshni-${TAG}.apk"
+          AAB="Roshni-${TAG}.aab"
           cp app/build/outputs/apk/release/app-release.apk "$APK"
+          cp app/build/outputs/bundle/release/app-release.aab "$AAB"
           sha256sum "$APK" > "$APK.sha256"
           CODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
           NOTES="fastlane/metadata/android/en-US/changelogs/${CODE}.txt"
           if [ -f "$NOTES" ]; then
-            gh release create "$TAG" "$APK" "$APK.sha256" --title "Roshni ${TAG#v}" --notes-file "$NOTES"
+            gh release create "$TAG" "$APK" "$APK.sha256" "$AAB" --title "Roshni ${TAG#v}" --notes-file "$NOTES"
           else
-            gh release create "$TAG" "$APK" "$APK.sha256" --title "Roshni ${TAG#v}" --generate-notes
+            gh release create "$TAG" "$APK" "$APK.sha256" "$AAB" --title "Roshni ${TAG#v}" --generate-notes
           fi
