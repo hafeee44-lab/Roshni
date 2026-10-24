@@ -88,7 +88,7 @@ class LocalSourceTest {
         0x024C to 79,
         0x024E to 1228,
         0x0256 to 0, 0x0261 to 0,
-        0x027C to 1168,
+        0x028D to 1168,
         0x0066 to 110
     )
 
