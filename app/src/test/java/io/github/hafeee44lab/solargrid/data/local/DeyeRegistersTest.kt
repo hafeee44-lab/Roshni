@@ -24,7 +24,7 @@ class DeyeRegistersTest {
         0x0203 to 56, // discharged 5.6 kWh
         0x0208 to 123, // bought 12.3 kWh
         0x0209 to 4, // sold 0.4 kWh
-        0x020E to 187, // used 18.7 kWh
+        0x020E to 187, // 18.7 kWh through the load port
         0x0211 to 211, // produced 21.1 kWh
         0x021D to 1512, // 51.2 °C
         0x0228 to 0b0001, // inverter relay closed, grid relay (bit 2) open
@@ -70,7 +70,8 @@ class DeyeRegistersTest {
     fun todaysTotalsAreRead() {
         val today = read(DeyeLayout.THREE_PHASE_LV, sg05Outage).today
         assertEquals(21.1, today.producedKwh!!, 0.001)
-        assertEquals(18.7, today.consumedKwh!!, 0.001)
+        // The day's balance, as Solarman shows it: 12.3 + 21.1 + 5.6 − 5.5 − 0.4.
+        assertEquals(33.1, today.consumedKwh!!, 0.001)
         assertEquals(12.3, today.boughtKwh!!, 0.001)
         assertEquals(0.4, today.soldKwh!!, 0.001)
         assertEquals(5.5, today.chargedKwh!!, 0.001)
@@ -144,7 +145,8 @@ class DeyeRegistersTest {
         assertEquals(48.0, reading.inverterTempC!!, 0.001)
         assertEquals(27.0, reading.batteryTempC!!, 0.001)
         assertEquals(5.0, reading.today.boughtKwh!!, 0.001)
-        assertEquals(4.3, reading.today.consumedKwh!!, 0.001)
+        // The Solarman app showed 4.8 kWh here; the inverter's load-port counter (526) said 4.3.
+        assertEquals(4.8, reading.today.consumedKwh!!, 0.001)
 
         // Grid in = load + charging + inverter losses, within about a hundred watts.
         val losses = reading.gridPowerW!! + reading.solarPowerW!! - reading.loadPowerW!! + reading.batteryPowerW!!

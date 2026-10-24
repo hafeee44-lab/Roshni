@@ -96,7 +96,12 @@ object DeyeRegisters {
                 out.num("Etdy_dcg1", r.u16(0x0203), 0.1, "kWh", "Daily Discharging Energy")
                 out.num("Etdy_pu1", r.u16(0x0208), 0.1, "kWh", "Daily Energy Purchased")
                 out.num("Etdy_gn1", r.u16(0x0209), 0.1, "kWh", "Daily Grid Feed-in")
-                out.num("Etdy_use1", r.u16(0x020E), 0.1, "kWh", "Daily Consumption")
+                // Solarman's "Daily Consumption" is the day's energy balance, inverter losses
+                // included; register 526 counts the load port alone. On the SG05 at 06:17 on 24 Oct
+                // the app showed 4.8 kWh = bought 5.0 + produced 0 + discharged 0 − charged 0.2 −
+                // sold 0, while 526 held 4.3. Use the balance so both sources agree.
+                out.num("Etdy_use1", r.dailyBalance(bought = 0x0208, produced = 0x0211, discharged = 0x0203, charged = 0x0202, sold = 0x0209), 0.1, "kWh", "Daily Consumption")
+                out.num("Etdy_load1", r.u16(0x020E), 0.1, "kWh", "Daily Load-Port Consumption")
                 out.num("Etdy_ge1", r.u16(0x0211), 0.1, "kWh", "Daily Production")
             }
             DeyeLayout.SINGLE_PHASE -> {
@@ -134,6 +139,13 @@ object DeyeRegisters {
             val lo = u16(low) ?: return null
             val hi = u16(high) ?: return null
             return (hi shl 16) or lo
+        }
+
+        /** Energy into the house today: what came in, less what went into the battery or back out. */
+        fun dailyBalance(bought: Int, produced: Int, discharged: Int, charged: Int, sold: Int): Int? {
+            val inflow = listOf(bought, produced, discharged).map { u16(it) ?: return null }.sum()
+            val outflow = listOf(charged, sold).map { u16(it) ?: return null }.sum()
+            return (inflow - outflow).coerceAtLeast(0)
         }
 
         fun sum(vararg addresses: Int): Int? {
