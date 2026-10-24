@@ -1,0 +1,1 @@
+{"success":true,"failCode":0,"message":null,"params":{"devIds":"1000000033607000","devTypeId":38},"data":[{"devId":1000000033607000,"sn":"HV2150000001","dataItemMap":{"inverter_state":45056.0,"active_power":0.0,"mppt_power":0.0,"run_state":0}}]}

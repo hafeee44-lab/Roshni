@@ -1,0 +1,1 @@
+{"success":true,"failCode":0,"message":null,"params":{"devIds":"1000000033607914","devTypeId":47,"currentTime":1792857900000},"data":[{"devId":1000000033607914,"sn":null,"dataItemMap":{"meter_u":0.0,"meter_i":0.0,"active_power":0.0,"grid_frequency":0.0,"run_state":1,"meter_status":1}}]}

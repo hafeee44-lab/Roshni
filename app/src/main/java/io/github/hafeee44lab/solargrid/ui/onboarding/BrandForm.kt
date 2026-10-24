@@ -41,6 +41,7 @@ import io.github.hafeee44lab.solargrid.data.DiscoveredDevice
 import io.github.hafeee44lab.solargrid.data.cloud.BrandAccount
 import io.github.hafeee44lab.solargrid.data.cloud.CloudBrand
 import io.github.hafeee44lab.solargrid.data.cloud.GrowattSource
+import io.github.hafeee44lab.solargrid.data.cloud.HuaweiSource
 import io.github.hafeee44lab.solargrid.ui.MainViewModel
 import io.github.hafeee44lab.solargrid.ui.components.Icons
 import io.github.hafeee44lab.solargrid.ui.components.ListGroup
@@ -99,6 +100,22 @@ private fun specOf(brand: CloudBrand): BrandSpec = when (brand) {
             help = R.string.growatt_help
         )
     }
+    CloudBrand.HUAWEI -> BrandSpec(
+        modeKey = null,
+        modes = listOf(
+            BrandMode(
+                "northbound", R.string.huawei_mode,
+                listOf(
+                    BrandField(HuaweiSource.USER, R.string.field_api_username),
+                    BrandField(HuaweiSource.SYSTEM_CODE, R.string.field_api_password, secret = true),
+                    BrandField(HuaweiSource.SERVER, R.string.field_server, keyboard = KeyboardType.Uri, default = HuaweiSource.DEFAULT_SERVER)
+                )
+            )
+        ),
+        body = R.string.connect_huawei_body,
+        help = R.string.huawei_help,
+        helpUrl = "https://github.com/tijsverkoyen/HomeAssistant-FusionSolar#if-you-know-your-installer-or-you-have-the-installer-account"
+    )
 }
 
 /** Which maker's cloud to read. Shared by onboarding and Settings. */
@@ -129,6 +146,7 @@ fun CloudBrandPicker(selected: CloudBrand, onSelect: (CloudBrand) -> Unit) {
 private fun brandSubtitle(brand: CloudBrand): Int = when (brand) {
     CloudBrand.SOLARMAN -> R.string.brand_solarman_sub
     CloudBrand.GROWATT -> R.string.brand_growatt_sub
+    CloudBrand.HUAWEI -> R.string.brand_huawei_sub
 }
 
 /**

@@ -392,4 +392,10 @@
     <string name="cloud_calls">Cloud calls: %1$d today</string>
     <string name="cloud_calls_yesterday">Cloud calls: %1$d today · %2$d yesterday</string>
     <string name="cloud_calls_sub">%1$s is asked at most once every %2$d minutes, to stay inside its limits.</string>
+    <string name="brand_huawei_sub">SUN2000 with LUNA2000 battery, via an installer-made API account</string>
+    <string name="huawei_mode">Northbound API account</string>
+    <string name="field_api_username">API username</string>
+    <string name="field_api_password">API password (system code)</string>
+    <string name="connect_huawei_body">Readings come from FusionSolar\'s Northbound API. Your normal FusionSolar login won\'t work here: it needs an API account your installer creates. Huawei allows one reading a minute.</string>
+    <string name="huawei_help">Ask your installer to sign in to FusionSolar as the installer, open System → Company management → Northbound management, tap Add, set a username and password, choose your plant, enable Basic APIs and the device data for the inverter, battery and power sensor, and set the expiry far ahead. Use those here. The server is the start of your FusionSolar web address, for example intl.fusionsolar.huawei.com or eu5.fusionsolar.huawei.com. Don\'t use the same API account in another app: Huawei allows one session at a time. The kiosk link isn\'t enough: it shows only solar production, so it can\'t see a cut.</string>
 </resources>

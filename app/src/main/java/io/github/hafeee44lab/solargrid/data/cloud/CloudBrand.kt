@@ -17,7 +17,13 @@ enum class CloudBrand(
      * 10012), and the ShinePhone API locks accounts that sign in too often (msg 507). See
      * growattServer's exceptions.py and Home Assistant's growatt_server integration.
      */
-    GROWATT("Growatt", 5 * 60_000L);
+    GROWATT("Growatt", 5 * 60_000L),
+
+    /**
+     * FusionSolar's Northbound API allows one getDevRealKpi call a minute per account, and each
+     * poll makes one (see HuaweiSource). Two minutes leaves room for a manual refresh.
+     */
+    HUAWEI("Huawei FusionSolar", 2 * 60_000L);
 
     companion object {
         fun from(name: String?): CloudBrand = entries.firstOrNull { it.name == name } ?: SOLARMAN

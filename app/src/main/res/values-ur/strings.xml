@@ -394,4 +394,10 @@
     <string name="cloud_calls">کلاؤڈ سے رابطے: آج %1$d</string>
     <string name="cloud_calls_yesterday">کلاؤڈ سے رابطے: آج %1$d · کل %2$d</string>
     <string name="cloud_calls_sub">%1$s سے زیادہ سے زیادہ ہر %2$d منٹ میں ایک بار پوچھا جاتا ہے، تاکہ اس کی حد میں رہیں۔</string>
+    <string name="brand_huawei_sub">SUN2000 اور LUNA2000 بیٹری، انسٹالر کے بنائے API اکاؤنٹ سے</string>
+    <string name="huawei_mode">Northbound API اکاؤنٹ</string>
+    <string name="field_api_username">API یوزر نیم</string>
+    <string name="field_api_password">API پاس ورڈ (system code)</string>
+    <string name="connect_huawei_body">ریڈنگ فیوژن سولر کے Northbound API سے آتی ہے۔ آپ کا عام فیوژن سولر لاگ اِن یہاں کام نہیں کرے گا: اس کے لیے انسٹالر کا بنایا ہوا API اکاؤنٹ چاہیے۔ ہواوے ایک منٹ میں ایک ریڈنگ کی اجازت دیتا ہے۔</string>
+    <string name="huawei_help">اپنے انسٹالر سے کہیں کہ وہ فیوژن سولر میں انسٹالر کے طور پر سائن اِن کرے، System ← Company management ← Northbound management کھولے، Add دبائے، یوزر نیم اور پاس ورڈ رکھے، آپ کا پلانٹ چنے، Basic APIs اور انورٹر، بیٹری اور پاور سینسر کا device data آن کرے، اور میعاد بہت آگے کی رکھے۔ وہی یہاں لکھیں۔ سرور آپ کے فیوژن سولر ویب ایڈریس کا شروع والا حصہ ہے، مثلاً intl.fusionsolar.huawei.com یا eu5.fusionsolar.huawei.com۔ یہی API اکاؤنٹ کسی اور ایپ میں استعمال نہ کریں: ہواوے ایک وقت میں ایک ہی سیشن کی اجازت دیتا ہے۔ کیوسک لنک کافی نہیں: اس میں صرف سولر پیداوار دکھتی ہے، اس لیے بجلی جانے کا پتا نہیں چلتا۔</string>
 </resources>
