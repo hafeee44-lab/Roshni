@@ -180,6 +180,6 @@ No accounts, ads or analytics, and nothing reaches the developer. See the [priva
 
 ## Licence
 
-[MIT](LICENSE). Third-party material and its licences are listed in [NOTICE](NOTICE).
+[MIT](LICENSE). Made by **Muhammad Hafi** ([@hafeee44-lab](https://github.com/hafeee44-lab)), published by **Havlen**. Third-party material and its licences are listed in [NOTICE](NOTICE).
 
 *Not affiliated with Solarman or any inverter manufacturer.*

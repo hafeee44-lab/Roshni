@@ -1,6 +1,6 @@
 # Roshni privacy policy
 
-Effective 24 October 2026. Applies to the Roshni Android app (`io.github.hafeee44lab.solargrid`), on Google Play and on GitHub.
+Effective 24 October 2026. Applies to the Roshni Android app (`io.github.hafeee44lab.solargrid`), on Google Play and on GitHub. Roshni is developed by Muhammad Hafi and published by Havlen, referred to below as "the developer".
 
 Short version: Roshni has no servers, accounts, ads or analytics. The developer never receives your data. The app reads your own inverter, either directly from its Wi-Fi logger on your home network or through the cloud service of your inverter's maker (Solarman, Growatt, Huawei FusionSolar, SolisCloud or DESS Monitor), whichever you choose. If you turn on the optional WhatsApp relay, it also talks to a bridge you run yourself. Nothing else.
 

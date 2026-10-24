@@ -132,7 +132,7 @@
     <string name="language_pick">English or Urdu</string>
     <string name="language_follows_phone">Follows your phone\'s language</string>
     <string name="about">About</string>
-    <string name="about_footer">Not affiliated with Solarman or any inverter maker. Readings come from the Solarman OpenAPI.</string>
+    <string name="about_footer">Not affiliated with Solarman or any inverter maker. Readings come from your inverter\'s Wi-Fi logger or its maker\'s cloud.</string>
     <string name="app_version">Roshni %1$s</string>
     <string name="open_source">Free and open source, MIT licence</string>
     <string name="source_code">Source code</string>
@@ -422,4 +422,6 @@
     <string name="dess_mode">SmartESS / WatchPower account</string>
     <string name="connect_dess_body">Readings come from DESS Monitor, the cloud behind the SmartESS and WatchPower apps. It has no official API, so Roshni uses the one the apps use and asks gently. The Wi-Fi collector uploads every 5 minutes.</string>
     <string name="dess_help">Use the same username and password you sign in with in SmartESS or WatchPower (Wi-Fi). To check, sign in at dessmonitor.com: if your inverter shows there, it will work here. The WatchPower Bluetooth app is different and can\'t be read. Roshni stores only a hash of the password. Older SmartClient (ShineMonitor) accounts aren\'t supported yet.</string>
+    <string name="made_by">Made by Muhammad Hafi</string>
+    <string name="made_by_sub">A Havlen app</string>
 </resources>

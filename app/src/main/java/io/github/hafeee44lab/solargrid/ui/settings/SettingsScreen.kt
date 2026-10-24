@@ -270,6 +270,9 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, system: SystemActions, onO
 
         ListGroup(stringResource(R.string.about), footer = stringResource(R.string.about_footer)) {
             SettingRow(stringResource(R.string.app_version, BuildConfig.VERSION_NAME), subtitle = stringResource(R.string.open_source), icon = Icons.Info)
+            SettingRow(stringResource(R.string.made_by), subtitle = stringResource(R.string.made_by_sub), icon = Icons.Account, onClick = { system.openUrl(DEVELOPER_URL) }) {
+                Icon(Icons.Chevron, null, tint = Solar.colors.ink3, modifier = Modifier.size(20.dp))
+            }
             SettingRow(stringResource(R.string.source_code), subtitle = stringResource(R.string.source_code_sub), icon = Icons.Code, onClick = { system.openUrl(BuildConfig.SOURCE_URL) }) {
                 Icon(Icons.Chevron, null, tint = c.ink3, modifier = Modifier.size(20.dp))
             }
@@ -462,3 +465,6 @@ private fun LanguageRow() {
         if (perApp) Icon(Icons.Chevron, null, tint = c.ink3, modifier = Modifier.size(20.dp))
     }
 }
+
+/** The developer's public profile, linked from Settings → About. */
+private const val DEVELOPER_URL = "https://github.com/hafeee44-lab"
