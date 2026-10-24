@@ -51,8 +51,8 @@ enum class DeyeLayout(val label: String, val blocks: List<RegisterBlock>) {
 
 private val THREE_PHASE_BLOCKS = listOf(
     RegisterBlock(0x0202, 39), // 514–552: today's energy, temperatures, relay status
-    RegisterBlock(0x024A, 90), // 586–675: battery, grid, output, load, PV
-    RegisterBlock(0x02AF, 22), // 687–708: high words of the 32-bit power values
+    RegisterBlock(0x024A, 90), // 586–675: battery, grid, output, load (with its high word), PV
+    RegisterBlock(0x02B2, 1), // 690: high word of the 32-bit grid power
     RegisterBlock(0x0066, 1, required = false) // 102: battery capacity (Ah), a setting
 )
 
@@ -86,8 +86,11 @@ object DeyeRegisters {
                 out.num("B_T1", r.u16(0x024A)?.minus(1000), 0.1, "℃", "Temperature- Battery")
                 out.num("AC_T", r.s16(0x021D)?.minus(1000), 0.1, "℃", "AC Temperature")
                 out.num("S_P_T", r.sum(0x02A0, 0x02A1, 0x02A2, 0x02A3), if (hv) 10.0 else 1.0, "W", "Total Solar Power")
-                // ha-solarman's "Load Power": inverter output plus whatever the external CT sees.
-                out.num("E_Puse_t1", r.s32(0x027C, 0x02B6)?.let { o -> r.s32(0x026B, 0x02C4)?.let { o + it } }, 1.0, "W", "Total Consumption Power")
+                // 653 "Load Consumption Power", the inverter's own load-port total: what the battery
+                // feeds in a cut. Not ha-solarman's "Load Power" (output 636 + external CT 619): on
+                // Hafi's SG05 the external CTs see the grid feed with their phases swapped and read
+                // 1000 W against the internal CTs' 784 W, which put the load ~200 W too high.
+                out.num("E_Puse_t1", r.s32(0x028D, 0x0293), 1.0, "W", "Total Consumption Power")
                 out.num("BRC", r.u16(0x0066), 1.0, "Ah", "Battery Rated Capacity")
                 out.num("Etdy_cg1", r.u16(0x0202), 0.1, "kWh", "Daily Charging Energy")
                 out.num("Etdy_dcg1", r.u16(0x0203), 0.1, "kWh", "Daily Discharging Energy")

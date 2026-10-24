@@ -36,6 +36,7 @@ class DeyeRegistersTest {
         0x0261 to 0,
         0x0271 to 0, 0x02B2 to 0,
         0x027C to 1168, 0x02B6 to 0,
+        0x028D to 1168, 0x0293 to 0,
         0x026B to 0, 0x02C4 to 0,
         0x02A0 to 0, 0x02A1 to 0, 0x02A2 to 0, 0x02A3 to 0,
         0x0066 to 110
@@ -98,16 +99,56 @@ class DeyeRegistersTest {
     @Test
     fun thirtyTwoBitPowersCombineLowWordFirst() {
         // Exporting 1.5 kW: -1500 as a 32-bit value, split into its low and high words.
-        val exporting = sg05Outage + mapOf(0x0271 to s16(-1500), 0x02B2 to 0xFFFF, 0x027C to (70_000 and 0xFFFF), 0x02B6 to (70_000 ushr 16))
+        val exporting = sg05Outage + mapOf(0x0271 to s16(-1500), 0x02B2 to 0xFFFF, 0x028D to (70_000 and 0xFFFF), 0x0293 to (70_000 ushr 16))
         val reading = read(DeyeLayout.THREE_PHASE_LV, exporting)
         assertEquals(-1500.0, reading.gridPowerW!!, 0.001)
         assertEquals(70_000.0, reading.loadPowerW!!, 0.001)
     }
 
     @Test
-    fun loadIncludesWhatTheExternalCtSees() {
+    fun loadIgnoresTheExternalCt() {
         val reading = read(DeyeLayout.THREE_PHASE_LV, sg05Outage + mapOf(0x026B to 400))
-        assertEquals(1568.0, reading.loadPowerW!!, 0.001)
+        assertEquals(1168.0, reading.loadPowerW!!, 0.001)
+    }
+
+    /**
+     * Read off Hafi's SG05 over the LAN at 06:12 on 24 Oct, grid on. The external CTs carry the
+     * grid feed with their phases rotated (their currents are the internal CTs' shifted by one), so
+     * their power is wrong; the load must come from the load-port total, which balances against
+     * the grid.
+     */
+    @Test
+    fun theLiveSg05ReadingBalances() {
+        val live = mapOf(
+            0x0000 to 5,
+            0x0202 to 2, 0x0203 to 0, 0x0208 to 50, 0x0209 to 0, 0x020E to 43, 0x0211 to 0,
+            0x021D to 1480, 0x0228 to 13,
+            0x024A to 1270, 0x024B to 5332, 0x024C to 98, 0x024E to s16(-16),
+            0x0256 to 2380, 0x0257 to 2355, 0x0258 to 2384, 0x0261 to 5008,
+            0x025F to 784, 0x0268 to 204, 0x0269 to 644, 0x026A to 152, 0x026B to 1000,
+            0x0271 to 784, 0x027C to s16(-89), 0x028D to 695,
+            0x02A0 to 0, 0x02A1 to 6, 0x02A2 to 0, 0x02A3 to 0,
+            0x02B2 to 0, 0x02B6 to 0xFFFF, 0x02C4 to 0, 0x0293 to 0,
+            0x0066 to 110
+        )
+        val reading = read(DeyeLayout.THREE_PHASE_LV, live)
+        assertEquals(false, GridAnalyzer.evaluate(reading)!!.gridDown)
+        assertEquals(listOf(238.0, 235.5, 238.4), reading.gridPhaseVolts)
+        assertEquals(50.08, reading.gridFrequency!!, 0.001)
+        assertEquals(784.0, reading.gridPowerW!!, 0.001)
+        assertEquals(695.0, reading.loadPowerW!!, 0.001)
+        assertEquals(-16.0, reading.batteryPowerW!!, 0.001)
+        assertEquals(6.0, reading.solarPowerW!!, 0.001)
+        assertEquals(98.0, reading.soc!!, 0.001)
+        assertEquals(53.32, reading.batteryVoltage!!, 0.001)
+        assertEquals(48.0, reading.inverterTempC!!, 0.001)
+        assertEquals(27.0, reading.batteryTempC!!, 0.001)
+        assertEquals(5.0, reading.today.boughtKwh!!, 0.001)
+        assertEquals(4.3, reading.today.consumedKwh!!, 0.001)
+
+        // Grid in = load + charging + inverter losses, within about a hundred watts.
+        val losses = reading.gridPowerW!! + reading.solarPowerW!! - reading.loadPowerW!! + reading.batteryPowerW!!
+        assertTrue("losses $losses W", losses in 0.0..120.0)
     }
 
     @Test
