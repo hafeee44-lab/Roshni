@@ -351,7 +351,7 @@
     <string name="export_subject">روشنی: لوڈ شیڈنگ کا ریکارڈ</string>
     <string name="relay_test">✅ روشنی کا آزمائشی پیغام۔ اگر یہ نظر آ رہا ہے تو بجلی جانے کے الرٹس یہیں آئیں گے۔</string>
     <!-- Local network data source -->
-    <string name="source_cloud">سولرمین کلاؤڈ</string>
+    <string name="source_cloud">کلاؤڈ</string>
     <string name="source_local">مقامی نیٹ ورک</string>
     <string name="connect_local_body">انورٹر کی ریڈنگ گھر کے وائی فائی پر سیدھی اس کی سولرمین وائی فائی اسٹک سے لیں۔ نہ App ID چاہیے، نہ secret، نہ کلاؤڈ کی حد۔</string>
     <string name="logger_ip">لاگر کا IP ایڈریس</string>
@@ -373,4 +373,25 @@
     <string name="forget_logger">لاگر ہٹائیں</string>
     <string name="local_no_quota">وائی فائی پر تقریباً ہر منٹ ریڈنگ؛ کلاؤڈ کی حد استعمال نہیں ہوتی</string>
     <string name="use_source">%1$s استعمال کریں</string>
+    <!-- Other inverter brands' clouds -->
+    <string name="choose_brand">اپنے انورٹر کا برانڈ چنیں</string>
+    <string name="brand_solarman_sub">ڈائی، سن سنک اور دوسرے جن میں سولرمین وائی فائی اسٹک لگی ہو</string>
+    <string name="brand_growatt_sub">شائن فون / شائن سرور: SPH، SPF، MIN-XH، MOD-XH</string>
+    <string name="growatt_mode_token">API ٹوکن</string>
+    <string name="growatt_mode_password">شائن فون پاس ورڈ</string>
+    <string name="field_server">سرور</string>
+    <string name="field_api_token">API ٹوکن</string>
+    <string name="field_username">یوزر نیم</string>
+    <string name="field_password">پاس ورڈ</string>
+    <string name="keep_if_blank">%1$s (پرانا رکھنے کے لیے خالی چھوڑیں)</string>
+    <string name="connect_growatt_body">ریڈنگ گروواٹ کے کلاؤڈ سے آتی ہے، وہی جو شائن فون ایپ دکھاتی ہے۔ گروواٹ ہر 5 منٹ میں ایک ریڈنگ کی اجازت دیتا ہے۔</string>
+    <string name="growatt_help">API ٹوکن (سرکاری، بہتر طریقہ): server.growatt.com پر Settings ← Account management ← API key میں جا کر Generate دبائیں، یا شائن فون میں Me ← اپنا یوزر نیم ← API token کھولیں۔ یہ SPH اور MIN / MIN-XH / MOD-XH انورٹر پڑھتا ہے۔ SPF آف گرڈ انورٹر کے لیے، یا اگر ٹوکن کام نہ کرے، تو شائن فون کا یوزر نیم اور پاس ورڈ استعمال کریں؛ روشنی پاس ورڈ کا صرف ہیش محفوظ کرتی ہے۔ سرور ویسا ہی رہنے دیں، جب تک آپ کا اکاؤنٹ کسی علاقائی سرور جیسے openapi-us.growatt.com پر نہ ہو۔</string>
+    <string name="brand_help_link">برانڈ کا مدد والا صفحہ</string>
+    <string name="no_supported_inverters">سائن اِن ہو گیا، مگر اس اکاؤنٹ پر کوئی ایسا انورٹر نہیں ملا جسے روشنی پڑھ سکے۔</string>
+    <string name="brand_account_title">%1$s · %2$s</string>
+    <string name="connect_brand">اپنا %1$s اکاؤنٹ جوڑیں</string>
+    <string name="forget_brand">%1$s اکاؤنٹ ہٹائیں</string>
+    <string name="cloud_calls">کلاؤڈ سے رابطے: آج %1$d</string>
+    <string name="cloud_calls_yesterday">کلاؤڈ سے رابطے: آج %1$d · کل %2$d</string>
+    <string name="cloud_calls_sub">%1$s سے زیادہ سے زیادہ ہر %2$d منٹ میں ایک بار پوچھا جاتا ہے، تاکہ اس کی حد میں رہیں۔</string>
 </resources>

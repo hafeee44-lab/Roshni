@@ -2,6 +2,7 @@ package io.github.hafeee44lab.solargrid.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.hafeee44lab.solargrid.data.cloud.CloudBrand
 import io.github.hafeee44lab.solargrid.domain.AlertSettings
 
 enum class ThemeMode {
@@ -14,7 +15,7 @@ enum class ThemeMode {
 
 /** Where live readings come from when demo mode is off. */
 enum class DataSource {
-    /** Solarman's cloud OpenAPI: needs an App ID and secret from Solarman. */
+    /** An inverter maker's cloud: Solarman's OpenAPI, or another brand's (see [AppSettings.cloudBrand]). */
     CLOUD,
 
     /** The Wi-Fi logger itself, on the home network: no account, no quota. */
@@ -40,6 +41,8 @@ data class AppSettings(
     val onboarded: Boolean = false,
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val source: DataSource = DataSource.CLOUD,
+    /** Whose cloud [DataSource.CLOUD] reads. */
+    val cloudBrand: CloudBrand = CloudBrand.SOLARMAN,
     val alerts: AlertSettings = AlertSettings(),
     val relay: RelaySettings = RelaySettings()
 ) {
@@ -62,6 +65,7 @@ class SettingsStore(context: Context) {
             onboarded = p.getBoolean(ONBOARDED, false),
             theme = ThemeMode.from(p.getString(THEME, null)),
             source = DataSource.from(p.getString(SOURCE, null)),
+            cloudBrand = CloudBrand.from(p.getString(CLOUD_BRAND, null)),
             alerts = AlertSettings(
                 alarmOnOutage = p.getBoolean("alarm_on_outage", defaults.alarmOnOutage),
                 ringInSilentMode = p.getBoolean("ring_in_silent", defaults.ringInSilentMode),
@@ -103,6 +107,7 @@ class SettingsStore(context: Context) {
             .putBoolean(ONBOARDED, settings.onboarded)
             .putString(THEME, settings.theme.name)
             .putString(SOURCE, settings.source.name)
+            .putString(CLOUD_BRAND, settings.cloudBrand.name)
             .putBoolean("alarm_on_outage", a.alarmOnOutage)
             .putBoolean("ring_in_silent", a.ringInSilentMode)
             .putInt("ring_seconds", a.ringSeconds)
@@ -134,5 +139,6 @@ class SettingsStore(context: Context) {
         const val ONBOARDED = "onboarded"
         const val THEME = "theme"
         const val SOURCE = "data_source"
+        const val CLOUD_BRAND = "cloud_brand"
     }
 }

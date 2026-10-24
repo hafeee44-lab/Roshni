@@ -55,6 +55,7 @@ import io.github.hafeee44lab.solargrid.BuildConfig
 import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.AppSettings
 import io.github.hafeee44lab.solargrid.data.DataSource
+import io.github.hafeee44lab.solargrid.data.cloud.CloudBrand
 import io.github.hafeee44lab.solargrid.data.ThemeMode
 import io.github.hafeee44lab.solargrid.domain.AlertSettings
 import io.github.hafeee44lab.solargrid.ui.MainViewModel
@@ -70,6 +71,8 @@ import io.github.hafeee44lab.solargrid.ui.components.ToggleRow
 import io.github.hafeee44lab.solargrid.ui.components.minuteLabel
 import io.github.hafeee44lab.solargrid.ui.components.phrases
 import io.github.hafeee44lab.solargrid.ui.onboarding.AccountForm
+import io.github.hafeee44lab.solargrid.ui.onboarding.BrandForm
+import io.github.hafeee44lab.solargrid.ui.onboarding.CloudBrandPicker
 import io.github.hafeee44lab.solargrid.ui.onboarding.LoggerForm
 import io.github.hafeee44lab.solargrid.ui.onboarding.SourcePicker
 import io.github.hafeee44lab.solargrid.ui.screenPadding
@@ -164,15 +167,19 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, system: SystemActions, onO
 
         ListGroup(stringResource(R.string.data_source)) {
             val local = settings.source == DataSource.LOCAL
+            val brandAccount = state.brandAccount?.takeIf { settings.cloudBrand != CloudBrand.SOLARMAN && it.brand == settings.cloudBrand }
+            val otherBrand = !local && settings.cloudBrand != CloudBrand.SOLARMAN
             SettingRow(
                 when {
                     settings.demoMode -> stringResource(R.string.demo_home)
                     local -> stringResource(R.string.source_local)
+                    otherBrand -> brandAccount?.let { a -> a.label.ifBlank { null }?.let { stringResource(R.string.brand_account_title, settings.cloudBrand.title, it) } ?: settings.cloudBrand.title } ?: stringResource(R.string.not_connected)
                     else -> state.account?.email ?: stringResource(R.string.not_connected)
                 },
                 subtitle = when {
                     settings.demoMode -> stringResource(R.string.simulated_inverter)
                     local -> state.logger?.let { stringResource(R.string.logger_connected_sub, it.host, it.serial.toString()) } ?: stringResource(R.string.set_up_logger)
+                    otherBrand -> brandAccount?.let { stringResource(R.string.inverter_sn, it.deviceName) } ?: stringResource(R.string.connect_brand, settings.cloudBrand.title)
                     else -> state.account?.let { stringResource(R.string.inverter_sn, it.deviceSn) } ?: stringResource(R.string.connect_account)
                 },
                 icon = if (local && !settings.demoMode) Icons.Wave else Icons.Account,
@@ -180,18 +187,36 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, system: SystemActions, onO
             ) { Icon(Icons.ChevronDown, null, tint = c.ink3, modifier = Modifier.size(20.dp)) }
             AnimatedVisibility(editingAccount, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
                 var shown by remember(settings.source) { mutableStateOf(settings.source) }
+                var shownBrand by remember(settings.cloudBrand) { mutableStateOf(settings.cloudBrand) }
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SourcePicker(shown, { shown = it })
                     when (shown) {
                         DataSource.CLOUD -> {
-                            AccountForm(vm = vm, initial = state.account, onDone = { editingAccount = false })
-                            if (state.account != null) {
-                                if (settings.source != DataSource.CLOUD) {
-                                    TextButton(onClick = { vm.useSource(DataSource.CLOUD); editingAccount = false }) {
-                                        Text(stringResource(R.string.use_source, stringResource(R.string.source_cloud)), style = SolarType.bodyStrong)
+                            CloudBrandPicker(shownBrand, { shownBrand = it })
+                            val active = settings.source == DataSource.CLOUD && settings.cloudBrand == shownBrand
+                            if (shownBrand == CloudBrand.SOLARMAN) {
+                                AccountForm(vm = vm, initial = state.account, onDone = { editingAccount = false })
+                                if (state.account != null) {
+                                    if (!active) {
+                                        TextButton(onClick = { vm.useCloudBrand(CloudBrand.SOLARMAN); editingAccount = false }) {
+                                            Text(stringResource(R.string.use_source, CloudBrand.SOLARMAN.title), style = SolarType.bodyStrong)
+                                        }
+                                    }
+                                    TextButton(onClick = { vm.signOut(); editingAccount = false }) { Text(stringResource(R.string.sign_out), color = c.down, style = SolarType.bodyStrong) }
+                                }
+                            } else {
+                                val saved = state.brandAccount?.takeIf { it.brand == shownBrand }
+                                BrandForm(vm = vm, brand = shownBrand, initial = saved, onDone = { editingAccount = false })
+                                if (saved != null) {
+                                    if (!active) {
+                                        TextButton(onClick = { vm.useCloudBrand(shownBrand); editingAccount = false }) {
+                                            Text(stringResource(R.string.use_source, shownBrand.title), style = SolarType.bodyStrong)
+                                        }
+                                    }
+                                    TextButton(onClick = { vm.forgetBrandAccount(); editingAccount = false }) {
+                                        Text(stringResource(R.string.forget_brand, shownBrand.title), color = c.down, style = SolarType.bodyStrong)
                                     }
                                 }
-                                TextButton(onClick = { vm.signOut(); editingAccount = false }) { Text(stringResource(R.string.sign_out), color = c.down, style = SolarType.bodyStrong) }
                             }
                         }
                         DataSource.LOCAL -> {
@@ -205,6 +230,14 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, system: SystemActions, onO
             }
             if (!settings.demoMode && local) {
                 SettingRow(stringResource(R.string.local_no_quota), icon = Icons.Wave, iconTint = c.ink3)
+            } else if (!settings.demoMode && otherBrand && brandAccount != null) {
+                SettingRow(
+                    state.apiCallsYesterday?.let { stringResource(R.string.cloud_calls_yesterday, state.apiCallsToday, it) }
+                        ?: stringResource(R.string.cloud_calls, state.apiCallsToday),
+                    subtitle = stringResource(R.string.cloud_calls_sub, settings.cloudBrand.title, (settings.cloudBrand.minPollMs / 60_000L).toInt()),
+                    icon = Icons.Wave,
+                    iconTint = if (state.quotaExhausted) c.down else c.ink3
+                )
             } else if (!settings.demoMode && state.account != null) {
                 SettingRow(
                     state.apiCallsYesterday?.let { stringResource(R.string.api_calls_yesterday, state.apiCallsToday, it) }
@@ -374,7 +407,7 @@ private fun DataGroup(vm: MainViewModel, state: UiState, system: SystemActions, 
                 if (intent == null) message = nothingToExport else system.share(intent)
             }
         })
-        if (!state.settings.demoMode && state.settings.source == DataSource.CLOUD && state.account != null) {
+        if (!state.settings.demoMode && state.settings.source == DataSource.CLOUD && state.settings.cloudBrand == CloudBrand.SOLARMAN && state.account != null) {
             SettingRow(
                 stringResource(R.string.import_solarman),
                 subtitle = importing?.let { (done, total) -> stringResource(R.string.import_fetching, done + 1, total) }

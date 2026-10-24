@@ -349,7 +349,7 @@
     <string name="export_subject">Roshni outage history</string>
     <string name="relay_test">✅ Roshni test message. If you can read this, outage alerts will land here.</string>
     <!-- Local network data source -->
-    <string name="source_cloud">Solarman cloud</string>
+    <string name="source_cloud">Cloud</string>
     <string name="source_local">Local network</string>
     <string name="connect_local_body">Read the inverter straight from its Solarman Wi-Fi stick on your home Wi-Fi. No App ID, secret or cloud allowance needed.</string>
     <string name="logger_ip">Logger IP address</string>
@@ -371,4 +371,25 @@
     <string name="forget_logger">Forget logger</string>
     <string name="local_no_quota">Read on your Wi-Fi about once a minute; no cloud allowance used</string>
     <string name="use_source">Use %1$s</string>
+    <!-- Other inverter brands' clouds -->
+    <string name="choose_brand">Choose your inverter brand</string>
+    <string name="brand_solarman_sub">Deye, Sunsynk and others with a Solarman Wi-Fi stick</string>
+    <string name="brand_growatt_sub">ShinePhone / ShineServer: SPH, SPF, MIN-XH, MOD-XH</string>
+    <string name="growatt_mode_token">API token</string>
+    <string name="growatt_mode_password">ShinePhone password</string>
+    <string name="field_server">Server</string>
+    <string name="field_api_token">API token</string>
+    <string name="field_username">Username</string>
+    <string name="field_password">Password</string>
+    <string name="keep_if_blank">%1$s (leave blank to keep)</string>
+    <string name="connect_growatt_body">Readings come from Growatt\'s cloud, the same one the ShinePhone app shows. Growatt allows one reading every 5 minutes.</string>
+    <string name="growatt_help">API token (official, preferred): on server.growatt.com go to Settings → Account management → API key and tap Generate, or in ShinePhone open Me → your username → API token. It reads SPH and MIN / MIN-XH / MOD-XH inverters. For an SPF off-grid inverter, or if the token doesn\'t work, use your ShinePhone username and password instead; Roshni stores only a hash of the password. Leave the server as it is unless your account is on a regional server such as openapi-us.growatt.com.</string>
+    <string name="brand_help_link">Brand\'s help page</string>
+    <string name="no_supported_inverters">Signed in, but no inverter Roshni can read was listed on this account.</string>
+    <string name="brand_account_title">%1$s · %2$s</string>
+    <string name="connect_brand">Connect your %1$s account</string>
+    <string name="forget_brand">Remove the %1$s account</string>
+    <string name="cloud_calls">Cloud calls: %1$d today</string>
+    <string name="cloud_calls_yesterday">Cloud calls: %1$d today · %2$d yesterday</string>
+    <string name="cloud_calls_sub">%1$s is asked at most once every %2$d minutes, to stay inside its limits.</string>
 </resources>

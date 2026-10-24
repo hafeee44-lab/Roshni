@@ -261,7 +261,8 @@ class MonitorService : Service() {
             errorStreak = state.errorStreak,
             learnedUploadMs = state.uploadIntervalMs,
             msSinceInverterUpload = state.snapshot.inverterAgeMillis(),
-            quotaExhausted = state.quotaHitAt > 0L
+            quotaExhausted = state.quotaHitAt > 0L,
+            floorMs = if (settings.demoMode) 0L else settings.cloudBrand.minPollMs
         )
     }
 

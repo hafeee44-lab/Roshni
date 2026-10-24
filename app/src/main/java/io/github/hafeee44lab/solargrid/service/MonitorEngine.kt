@@ -50,7 +50,7 @@ class MonitorEngine(private val graph: AppGraph) {
         val source = graph.readingSource()
         val result = if (source == null) {
             FetchResult.Failed(
-                if (settings.source == DataSource.LOCAL) "The local logger isn't set up" else "Not signed in to Solarman",
+                if (settings.source == DataSource.LOCAL) "The local logger isn't set up" else "Not signed in to ${settings.cloudBrand.title}",
                 authProblem = true
             )
         } else {
