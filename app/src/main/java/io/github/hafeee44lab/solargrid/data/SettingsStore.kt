@@ -12,6 +12,19 @@ enum class ThemeMode {
     }
 }
 
+/** Where live readings come from when demo mode is off. */
+enum class DataSource {
+    /** Solarman's cloud OpenAPI: needs an App ID and secret from Solarman. */
+    CLOUD,
+
+    /** The Wi-Fi logger itself, on the home network: no account, no quota. */
+    LOCAL;
+
+    companion object {
+        fun from(name: String?): DataSource = entries.firstOrNull { it.name == name } ?: CLOUD
+    }
+}
+
 data class RelaySettings(
     val enabled: Boolean = false,
     val url: String = "",
@@ -26,6 +39,7 @@ data class AppSettings(
     val demoMode: Boolean = false,
     val onboarded: Boolean = false,
     val theme: ThemeMode = ThemeMode.SYSTEM,
+    val source: DataSource = DataSource.CLOUD,
     val alerts: AlertSettings = AlertSettings(),
     val relay: RelaySettings = RelaySettings()
 ) {
@@ -47,6 +61,7 @@ class SettingsStore(context: Context) {
             demoMode = p.getBoolean(DEMO, false),
             onboarded = p.getBoolean(ONBOARDED, false),
             theme = ThemeMode.from(p.getString(THEME, null)),
+            source = DataSource.from(p.getString(SOURCE, null)),
             alerts = AlertSettings(
                 alarmOnOutage = p.getBoolean("alarm_on_outage", defaults.alarmOnOutage),
                 ringInSilentMode = p.getBoolean("ring_in_silent", defaults.ringInSilentMode),
@@ -87,6 +102,7 @@ class SettingsStore(context: Context) {
             .putBoolean(DEMO, settings.demoMode)
             .putBoolean(ONBOARDED, settings.onboarded)
             .putString(THEME, settings.theme.name)
+            .putString(SOURCE, settings.source.name)
             .putBoolean("alarm_on_outage", a.alarmOnOutage)
             .putBoolean("ring_in_silent", a.ringInSilentMode)
             .putInt("ring_seconds", a.ringSeconds)
@@ -117,5 +133,6 @@ class SettingsStore(context: Context) {
         const val DEMO = "demo_mode"
         const val ONBOARDED = "onboarded"
         const val THEME = "theme"
+        const val SOURCE = "data_source"
     }
 }

@@ -1,11 +1,13 @@
 package io.github.hafeee44lab.solargrid.service
 
 import io.github.hafeee44lab.solargrid.data.AppGraph
+import io.github.hafeee44lab.solargrid.data.DataSource
 import io.github.hafeee44lab.solargrid.data.FetchResult
 import io.github.hafeee44lab.solargrid.data.HistoryDb
 import io.github.hafeee44lab.solargrid.data.Sample
 import io.github.hafeee44lab.solargrid.data.SolarSnapshot
 import io.github.hafeee44lab.solargrid.data.StateStore
+import io.github.hafeee44lab.solargrid.data.local.LocalSource
 import io.github.hafeee44lab.solargrid.data.phrases
 import io.github.hafeee44lab.solargrid.domain.AlertPlanner
 import io.github.hafeee44lab.solargrid.domain.AlertSettings
@@ -47,7 +49,10 @@ class MonitorEngine(private val graph: AppGraph) {
         if (settings.demoMode) graph.backfillDemo(now)
         val source = graph.readingSource()
         val result = if (source == null) {
-            FetchResult.Failed("Not signed in to Solarman", authProblem = true)
+            FetchResult.Failed(
+                if (settings.source == DataSource.LOCAL) "The local logger isn't set up" else "Not signed in to Solarman",
+                authProblem = true
+            )
         } else {
             try {
                 state.lastPollAt = now
@@ -66,7 +71,9 @@ class MonitorEngine(private val graph: AppGraph) {
             is FetchResult.Ok -> {
                 reading = GridAnalyzer.read(result.metrics)
                 collectedAt = result.collectedAt
-                learnCadence(state, collectedAt)
+                // A local reading is stamped with the phone's clock, so its spacing is our own
+                // poll interval, not the logger's upload cadence.
+                if (source !is LocalSource) learnCadence(state, collectedAt)
                 runtime = updateRuntimeModel(state, reading, settings.alerts)
                 state.errorStreak = 0
                 state.quotaHitAt = 0L

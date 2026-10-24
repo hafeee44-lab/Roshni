@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
 import io.github.hafeee44lab.solargrid.data.AppGraph
+import io.github.hafeee44lab.solargrid.data.DataSource
 import io.github.hafeee44lab.solargrid.data.HistoryImport
 import io.github.hafeee44lab.solargrid.domain.AlertKind
 import io.github.hafeee44lab.solargrid.domain.PollPolicy
@@ -167,8 +168,12 @@ class MonitorService : Service() {
         pollJob = scope.launch {
             _busy.value = true
             try {
-                val demo = graph.settings.load().demoMode
-                if (!demo && !hasUsableNetwork()) {
+                val current = graph.settings.load()
+                val demo = current.demoMode
+                // The local logger needs no internet, and the ISP is often the first thing to
+                // go in a cut, so only the cloud waits for a validated connection.
+                val local = current.source == DataSource.LOCAL
+                if (!demo && !local && !hasUsableNetwork()) {
                     awaitNetwork()
                     scheduleNext(PollPolicy.OFFLINE_FALLBACK_MS)
                     return@launch
@@ -245,9 +250,14 @@ class MonitorService : Service() {
     private fun computeDelay(): Long {
         val state = graph.state()
         val monitor = state.monitor
+        val settings = graph.settings.load()
+        val sinceChange = if (monitor.stateChangedAt > 0L) System.currentTimeMillis() - monitor.stateChangedAt else Long.MAX_VALUE
+        if (!settings.demoMode && settings.source == DataSource.LOCAL) {
+            return PollPolicy.nextLocalDelayMs(monitor.outage.committedDown, sinceChange, state.errorStreak)
+        }
         return PollPolicy.nextDelayMs(
             gridDown = monitor.outage.committedDown,
-            msSinceStateChange = if (monitor.stateChangedAt > 0L) System.currentTimeMillis() - monitor.stateChangedAt else Long.MAX_VALUE,
+            msSinceStateChange = sinceChange,
             errorStreak = state.errorStreak,
             learnedUploadMs = state.uploadIntervalMs,
             msSinceInverterUpload = state.snapshot.inverterAgeMillis(),

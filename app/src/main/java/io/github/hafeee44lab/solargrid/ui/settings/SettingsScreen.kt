@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.hafeee44lab.solargrid.BuildConfig
 import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.AppSettings
+import io.github.hafeee44lab.solargrid.data.DataSource
 import io.github.hafeee44lab.solargrid.data.ThemeMode
 import io.github.hafeee44lab.solargrid.domain.AlertSettings
 import io.github.hafeee44lab.solargrid.ui.MainViewModel
@@ -69,6 +70,8 @@ import io.github.hafeee44lab.solargrid.ui.components.ToggleRow
 import io.github.hafeee44lab.solargrid.ui.components.minuteLabel
 import io.github.hafeee44lab.solargrid.ui.components.phrases
 import io.github.hafeee44lab.solargrid.ui.onboarding.AccountForm
+import io.github.hafeee44lab.solargrid.ui.onboarding.LoggerForm
+import io.github.hafeee44lab.solargrid.ui.onboarding.SourcePicker
 import io.github.hafeee44lab.solargrid.ui.screenPadding
 import io.github.hafeee44lab.solargrid.ui.theme.Solar
 import io.github.hafeee44lab.solargrid.ui.theme.SolarType
@@ -160,21 +163,49 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, system: SystemActions, onO
         }
 
         ListGroup(stringResource(R.string.data_source)) {
+            val local = settings.source == DataSource.LOCAL
             SettingRow(
-                if (settings.demoMode) stringResource(R.string.demo_home) else state.account?.email ?: stringResource(R.string.not_connected),
-                subtitle = if (settings.demoMode) stringResource(R.string.simulated_inverter) else state.account?.let { stringResource(R.string.inverter_sn, it.deviceSn) } ?: stringResource(R.string.connect_account),
-                icon = Icons.Account,
+                when {
+                    settings.demoMode -> stringResource(R.string.demo_home)
+                    local -> stringResource(R.string.source_local)
+                    else -> state.account?.email ?: stringResource(R.string.not_connected)
+                },
+                subtitle = when {
+                    settings.demoMode -> stringResource(R.string.simulated_inverter)
+                    local -> state.logger?.let { stringResource(R.string.logger_connected_sub, it.host, it.serial.toString()) } ?: stringResource(R.string.set_up_logger)
+                    else -> state.account?.let { stringResource(R.string.inverter_sn, it.deviceSn) } ?: stringResource(R.string.connect_account)
+                },
+                icon = if (local && !settings.demoMode) Icons.Wave else Icons.Account,
                 onClick = { editingAccount = !editingAccount }
             ) { Icon(Icons.ChevronDown, null, tint = c.ink3, modifier = Modifier.size(20.dp)) }
             AnimatedVisibility(editingAccount, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    AccountForm(vm = vm, initial = state.account, onDone = { editingAccount = false })
-                    if (state.account != null) {
-                        TextButton(onClick = { vm.signOut(); editingAccount = false }) { Text(stringResource(R.string.sign_out), color = c.down, style = SolarType.bodyStrong) }
+                var shown by remember(settings.source) { mutableStateOf(settings.source) }
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SourcePicker(shown, { shown = it })
+                    when (shown) {
+                        DataSource.CLOUD -> {
+                            AccountForm(vm = vm, initial = state.account, onDone = { editingAccount = false })
+                            if (state.account != null) {
+                                if (settings.source != DataSource.CLOUD) {
+                                    TextButton(onClick = { vm.useSource(DataSource.CLOUD); editingAccount = false }) {
+                                        Text(stringResource(R.string.use_source, stringResource(R.string.source_cloud)), style = SolarType.bodyStrong)
+                                    }
+                                }
+                                TextButton(onClick = { vm.signOut(); editingAccount = false }) { Text(stringResource(R.string.sign_out), color = c.down, style = SolarType.bodyStrong) }
+                            }
+                        }
+                        DataSource.LOCAL -> {
+                            LoggerForm(vm = vm, initial = state.logger, onDone = { editingAccount = false })
+                            if (state.logger != null) {
+                                TextButton(onClick = { vm.forgetLogger(); editingAccount = false }) { Text(stringResource(R.string.forget_logger), color = c.down, style = SolarType.bodyStrong) }
+                            }
+                        }
                     }
                 }
             }
-            if (!settings.demoMode && state.account != null) {
+            if (!settings.demoMode && local) {
+                SettingRow(stringResource(R.string.local_no_quota), icon = Icons.Wave, iconTint = c.ink3)
+            } else if (!settings.demoMode && state.account != null) {
                 SettingRow(
                     state.apiCallsYesterday?.let { stringResource(R.string.api_calls_yesterday, state.apiCallsToday, it) }
                         ?: stringResource(R.string.api_calls, state.apiCallsToday),
@@ -340,7 +371,7 @@ private fun DataGroup(vm: MainViewModel, state: UiState, system: SystemActions, 
                 if (intent == null) message = nothingToExport else system.share(intent)
             }
         })
-        if (!state.settings.demoMode && state.account != null) {
+        if (!state.settings.demoMode && state.settings.source == DataSource.CLOUD && state.account != null) {
             SettingRow(
                 stringResource(R.string.import_solarman),
                 subtitle = importing?.let { (done, total) -> stringResource(R.string.import_fetching, done + 1, total) }

@@ -244,7 +244,6 @@
     <string name="feature_warn_sub">It spots the schedule in your own history.</string>
     <string name="continue_">Continue</string>
     <string name="back">Back</string>
-    <string name="connect_solarman">Connect Solarman</string>
     <string name="connect_solarman_body">Readings come from Solarman\'s OpenAPI, the same cloud your inverter\'s Wi-Fi stick already reports to.</string>
     <string name="connected">Connected</string>
     <string name="connected_sub">%1$s · inverter %2$s</string>
@@ -345,4 +344,27 @@
     <string name="cant_reach_solarman">Couldn\'t reach Solarman: %1$s</string>
     <string name="export_subject">Roshni outage history</string>
     <string name="relay_test">✅ Roshni test message. If you can read this, outage alerts will land here.</string>
+    <!-- Local network data source -->
+    <string name="source_cloud">Solarman cloud</string>
+    <string name="source_local">Local network</string>
+    <string name="connect_local_body">Read the inverter straight from its Solarman Wi-Fi stick on your home Wi-Fi. No App ID, secret or cloud allowance needed.</string>
+    <string name="logger_ip">Logger IP address</string>
+    <string name="logger_serial">Logger serial number</string>
+    <string name="find_logger">Find logger</string>
+    <string name="finding_logger">Looking on this Wi-Fi…</string>
+    <string name="loggers_found">Loggers on this Wi-Fi</string>
+    <string name="logger_found_row">%1$s · serial %2$s</string>
+    <string name="no_logger_found">No logger answered. Enter its IP address from your router\'s list of connected devices.</string>
+    <string name="logger_where">Where do I find these?</string>
+    <string name="logger_help">The serial number is on the label of the Wi-Fi stick plugged into the inverter, usually 10 digits. It is not the inverter\'s own serial. The IP address is in your router\'s list of connected devices; reserve it there so it doesn\'t change. This phone has to be on the same Wi-Fi, and the router needs backup power for Roshni to see a cut while it happens.</string>
+    <string name="connect_logger">Connect</string>
+    <string name="connecting_logger">Connecting…</string>
+    <string name="save_anyway">Save anyway</string>
+    <string name="invalid_ip">Enter an IP address like 192.168.1.40</string>
+    <string name="invalid_serial">The serial is digits only, up to 10</string>
+    <string name="logger_connected_sub">%1$s · logger %2$s</string>
+    <string name="set_up_logger">Set up the local logger</string>
+    <string name="forget_logger">Forget logger</string>
+    <string name="local_no_quota">Read on your Wi-Fi about once a minute; no cloud allowance used</string>
+    <string name="use_source">Use %1$s</string>
 </resources>

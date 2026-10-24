@@ -15,6 +15,11 @@ object PollPolicy {
     const val SILENT_UPLOADS = 3
     const val QUOTA_BACKOFF_MS = 60 * 60_000L
 
+    /** Local polls cost no allowance, but the logger is a small Wi-Fi stick: never faster than this. */
+    const val LOCAL_MIN_MS = 30_000L
+    const val LOCAL_IDLE_MS = 60_000L
+    const val LOCAL_ERROR_MAX_MS = 5 * 60_000L
+
     /**
      * When to ask Solarman next. Every call counts against the App ID's allowance, so this never
      * asks faster than the inverter can upload something new.
@@ -59,5 +64,18 @@ object PollPolicy {
         if (observedGapMs !in CADENCE_MIN_MS..CADENCE_MAX_MS) return previousLearnedMs
         val previous = previousLearnedMs ?: return observedGapMs
         return (previous * 2 + observedGapMs) / 3
+    }
+
+    /**
+     * When to read the logger next over the LAN. The readings are live, so there is no upload to
+     * wait for: every 30 s around a cut, every minute otherwise, backing off while it can't be reached.
+     */
+    fun nextLocalDelayMs(gridDown: Boolean?, msSinceStateChange: Long, errorStreak: Int): Long {
+        if (errorStreak > 0) {
+            val shift = (errorStreak - 1).coerceIn(0, 6)
+            return (LOCAL_MIN_MS shl shift).coerceAtMost(LOCAL_ERROR_MAX_MS)
+        }
+        if (gridDown == true || msSinceStateChange in 0 until WATCH_WINDOW_MS) return LOCAL_MIN_MS
+        return LOCAL_IDLE_MS
     }
 }
