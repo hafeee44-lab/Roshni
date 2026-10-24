@@ -40,6 +40,7 @@ import io.github.hafeee44lab.solargrid.R
 import io.github.hafeee44lab.solargrid.data.DiscoveredDevice
 import io.github.hafeee44lab.solargrid.data.cloud.BrandAccount
 import io.github.hafeee44lab.solargrid.data.cloud.CloudBrand
+import io.github.hafeee44lab.solargrid.data.cloud.DessSource
 import io.github.hafeee44lab.solargrid.data.cloud.GrowattSource
 import io.github.hafeee44lab.solargrid.data.cloud.HuaweiSource
 import io.github.hafeee44lab.solargrid.data.cloud.SolisSource
@@ -133,6 +134,20 @@ private fun specOf(brand: CloudBrand): BrandSpec = when (brand) {
         help = R.string.solis_help,
         helpUrl = "https://solis-service.solisinverters.com/support/solutions/articles/44002212561-api-access-soliscloud"
     )
+    CloudBrand.DESS -> BrandSpec(
+        modeKey = null,
+        modes = listOf(
+            BrandMode(
+                "app", R.string.dess_mode,
+                listOf(
+                    BrandField(DessSource.USER, R.string.field_username),
+                    BrandField("password", R.string.field_password, secret = true, storedAs = DessSource.PASSWORD_SHA1, hash = DessSource::sha1)
+                )
+            )
+        ),
+        body = R.string.connect_dess_body,
+        help = R.string.dess_help
+    )
 }
 
 /** Which maker's cloud to read. Shared by onboarding and Settings. */
@@ -165,6 +180,7 @@ private fun brandSubtitle(brand: CloudBrand): Int = when (brand) {
     CloudBrand.GROWATT -> R.string.brand_growatt_sub
     CloudBrand.HUAWEI -> R.string.brand_huawei_sub
     CloudBrand.SOLIS -> R.string.brand_solis_sub
+    CloudBrand.DESS -> R.string.brand_dess_sub
 }
 
 /**

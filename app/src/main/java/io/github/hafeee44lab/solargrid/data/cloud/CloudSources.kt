@@ -11,6 +11,7 @@ object CloudSources {
         CloudBrand.GROWATT -> GrowattSource(account, session, http)
         CloudBrand.HUAWEI -> HuaweiSource(account, session, http)
         CloudBrand.SOLIS -> SolisSource(account, session, http)
+        CloudBrand.DESS -> DessSource(account, session, http)
     }
 
     /** Signs in with [fields] and lists the inverters the source can read. */
@@ -19,5 +20,6 @@ object CloudSources {
         CloudBrand.GROWATT -> GrowattSource.discover(fields, http)
         CloudBrand.HUAWEI -> HuaweiSource.discover(fields, http)
         CloudBrand.SOLIS -> SolisSource.discover(fields, http)
+        CloudBrand.DESS -> DessSource.discover(fields, http)
     }
 }

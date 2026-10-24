@@ -26,7 +26,13 @@ enum class CloudBrand(
     HUAWEI("Huawei FusionSolar", 2 * 60_000L),
 
     /** SolisCloud's official API allows two calls a second; a minute is plenty, the logger uploads every 5. */
-    SOLIS("SolisCloud", 60_000L);
+    SOLIS("SolisCloud", 60_000L),
+
+    /**
+     * DESS Monitor (SmartESS, WatchPower) has no published limits and is reached through the
+     * apps' own API, so it gets a gentle 2 minutes. The collector uploads every 5.
+     */
+    DESS("SmartESS / DESS Monitor", 2 * 60_000L);
 
     companion object {
         fun from(name: String?): CloudBrand = entries.firstOrNull { it.name == name } ?: SOLARMAN

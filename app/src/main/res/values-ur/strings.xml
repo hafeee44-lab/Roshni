@@ -407,4 +407,8 @@
     <string name="field_api_url">API URL</string>
     <string name="connect_solis_body">ریڈنگ سولس کلاؤڈ کے سرکاری API سے آتی ہے، وہی ڈیٹا جو سولس کلاؤڈ ایپ دکھاتی ہے۔ لاگر ہر 5 منٹ میں ڈیٹا بھیجتا ہے۔</string>
     <string name="solis_help">پہلے سولس سے اپنے اکاؤنٹ پر API رسائی کھلوائیں: نیچے دیے لنک سے سروس ٹکٹ کھولیں (مفت ہے)۔ پھر soliscloud.com پر سائن اِن کریں، Account ← API management کھولیں، اسے فعال کریں اور شرائط مانیں، پھر View key دبائیں۔ سلائیڈر والی جانچ اور ای میل پر آئے کوڈ کے بعد آپ کو KeyID، KeySecret اور API URL ملیں گے۔ تینوں یہاں لکھیں۔ اس فون کا وقت خودکار ہونا چاہیے، ورنہ سولس درخواستیں رد کر دیتا ہے۔</string>
+    <string name="brand_dess_sub">انویریکس، فرونس، نوکس اور دوسرے ایکسپرٹ طرز کے انورٹر، SmartESS یا WatchPower ایپ میں</string>
+    <string name="dess_mode">SmartESS / WatchPower اکاؤنٹ</string>
+    <string name="connect_dess_body">ریڈنگ DESS Monitor سے آتی ہے، وہ کلاؤڈ جو SmartESS اور WatchPower ایپس کے پیچھے ہے۔ اس کا کوئی سرکاری API نہیں، اس لیے روشنی وہی استعمال کرتی ہے جو ایپس کرتی ہیں، اور کم کم پوچھتی ہے۔ وائی فائی کلیکٹر ہر 5 منٹ میں ڈیٹا بھیجتا ہے۔</string>
+    <string name="dess_help">وہی یوزر نیم اور پاس ورڈ لکھیں جس سے آپ SmartESS یا WatchPower (وائی فائی) میں سائن اِن کرتے ہیں۔ جانچنے کے لیے dessmonitor.com پر سائن اِن کریں: اگر آپ کا انورٹر وہاں نظر آئے تو یہاں بھی چلے گا۔ WatchPower کی بلوٹوتھ ایپ الگ ہے اور اسے نہیں پڑھا جا سکتا۔ روشنی پاس ورڈ کا صرف ہیش محفوظ کرتی ہے۔ پرانے SmartClient (ShineMonitor) اکاؤنٹ ابھی نہیں چلتے۔</string>
 </resources>

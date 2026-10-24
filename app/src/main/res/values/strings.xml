@@ -405,4 +405,8 @@
     <string name="field_api_url">API URL</string>
     <string name="connect_solis_body">Readings come from SolisCloud\'s official API, the same data the SolisCloud app shows. The logger uploads every 5 minutes.</string>
     <string name="solis_help">First ask Solis to switch on API access for your account: open a service ticket from the link below (it is free). Then sign in at soliscloud.com, open Account → API management, activate it and accept the terms, then tap View key. After a slider check and an emailed code you get the KeyID, the KeySecret and the API URL. Copy all three here. This phone\'s clock must be set automatically, or Solis refuses the requests.</string>
+    <string name="brand_dess_sub">Inverex, Fronus, Knox and other Axpert-type inverters in the SmartESS or WatchPower app</string>
+    <string name="dess_mode">SmartESS / WatchPower account</string>
+    <string name="connect_dess_body">Readings come from DESS Monitor, the cloud behind the SmartESS and WatchPower apps. It has no official API, so Roshni uses the one the apps use and asks gently. The Wi-Fi collector uploads every 5 minutes.</string>
+    <string name="dess_help">Use the same username and password you sign in with in SmartESS or WatchPower (Wi-Fi). To check, sign in at dessmonitor.com: if your inverter shows there, it will work here. The WatchPower Bluetooth app is different and can\'t be read. Roshni stores only a hash of the password. Older SmartClient (ShineMonitor) accounts aren\'t supported yet.</string>
 </resources>
