@@ -386,8 +386,8 @@ private fun Permissions(vm: MainViewModel, system: SystemActions, onNext: () -> 
         )
         ListGroup(null) {
             PermissionRow(stringResource(R.string.perm_notifications), stringResource(R.string.perm_notifications_ob), p.notifications, system::requestNotifications)
-            PermissionRow(stringResource(R.string.perm_full_screen), stringResource(R.string.perm_full_screen_ob), p.fullScreen, system::openFullScreenSettings)
-            PermissionRow(stringResource(R.string.perm_background), stringResource(R.string.perm_background_ob), p.unrestricted, system::requestUnrestricted)
+            PermissionRow(stringResource(R.string.perm_full_screen), stringResource(if (p.fullScreen) R.string.perm_full_screen_ob else R.string.perm_full_screen_off), p.fullScreen, system::openFullScreenSettings)
+            PermissionRow(stringResource(R.string.perm_background), stringResource(if (p.unrestricted) R.string.perm_background_ob else R.string.perm_background_fix), p.unrestricted, system::openBatterySettings)
             PermissionRow(stringResource(R.string.perm_exact), stringResource(R.string.perm_exact_sub), p.exactAlarms, system::openExactAlarmSettings)
         }
     }

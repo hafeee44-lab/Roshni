@@ -209,6 +209,9 @@ fun SettingsScreen(vm: MainViewModel, state: UiState, system: SystemActions, onO
             SettingRow(stringResource(R.string.source_code), subtitle = stringResource(R.string.source_code_sub), icon = Icons.Code, onClick = { system.openUrl(BuildConfig.SOURCE_URL) }) {
                 Icon(Icons.Chevron, null, tint = c.ink3, modifier = Modifier.size(20.dp))
             }
+            SettingRow(stringResource(R.string.privacy_policy), subtitle = stringResource(R.string.privacy_policy_sub), icon = Icons.Shield, onClick = { system.openUrl(BuildConfig.PRIVACY_URL) }) {
+                Icon(Icons.Chevron, null, tint = c.ink3, modifier = Modifier.size(20.dp))
+            }
         }
     }
 }
@@ -222,8 +225,8 @@ private fun Reliability(vm: MainViewModel, system: SystemActions) {
         footer = stringResource(R.string.reliability_footer)
     ) {
         CheckRow(stringResource(R.string.perm_notifications), stringResource(R.string.perm_notifications_sub), p.notifications, system::requestNotifications)
-        CheckRow(stringResource(R.string.perm_full_screen), stringResource(R.string.perm_full_screen_sub), p.fullScreen, system::openFullScreenSettings)
-        CheckRow(stringResource(R.string.perm_background), stringResource(R.string.perm_background_sub), p.unrestricted, system::requestUnrestricted)
+        CheckRow(stringResource(R.string.perm_full_screen), stringResource(if (p.fullScreen) R.string.perm_full_screen_sub else R.string.perm_full_screen_off), p.fullScreen, system::openFullScreenSettings)
+        CheckRow(stringResource(R.string.perm_background), stringResource(if (p.unrestricted) R.string.perm_background_sub else R.string.perm_background_fix), p.unrestricted, system::openBatterySettings)
         CheckRow(stringResource(R.string.perm_exact), stringResource(R.string.perm_exact_sub), p.exactAlarms, system::openExactAlarmSettings, optional = true)
         SettingRow(stringResource(R.string.brand_steps), icon = Icons.Info, onClick = { system.openUrl("https://dontkillmyapp.com") }) {
             Icon(Icons.Chevron, null, tint = c.ink3, modifier = Modifier.size(20.dp))

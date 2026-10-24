@@ -39,6 +39,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SOURCE_URL", "\"https://github.com/hafeee44-lab/Roshni\"")
+        buildConfigField("String", "PRIVACY_URL", "\"https://github.com/hafeee44-lab/Roshni/blob/main/docs/PRIVACY.md\"")
     }
 
     signingConfigs {

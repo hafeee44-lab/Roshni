@@ -123,7 +123,7 @@ Solarman OpenAPI ──► MonitorService (foreground, alarm-chained polling, wa
 
 - **Polling adapts.** It aims just after the inverter's learned upload cadence (usually every 5 minutes), polls every 90 seconds during an outage, and backs off exponentially when Solarman is unreachable.
 - **All the decision-making is pure Kotlin with no Android dependencies**, in `domain/`, and covered by unit tests. Start there if you want to change when or how the app alerts.
-- **Data stays on the phone.** There are no analytics and no accounts of our own. The only network traffic is to Solarman and, if you set one up, your own WhatsApp bridge.
+- **Data stays on the phone.** There are no analytics and no accounts of our own. The only network traffic is to Solarman and, if you set one up, your own WhatsApp bridge. Details are in the [privacy policy](docs/PRIVACY.md).
 
 ```
 app/src/main/java/io/github/hafeee44lab/solargrid/
@@ -139,6 +139,10 @@ Who it's for is in [PRODUCT.md](PRODUCT.md). Colours, type, layout and component
 ## Contributing
 
 Bug reports with an inverter dump, translations, support for more inverters and UI polish are all welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Privacy
+
+No accounts, ads or analytics, and nothing reaches the developer. See the [privacy policy](docs/PRIVACY.md).
 
 ## Licence
 

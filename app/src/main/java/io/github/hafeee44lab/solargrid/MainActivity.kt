@@ -90,10 +90,11 @@ class MainActivity : ComponentActivity(), SystemActions {
         }
     }
 
-    @android.annotation.SuppressLint("BatteryLife")
-    override fun requestUnrestricted() {
-        if (!tryStart(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))) {
-            tryStart(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+    // The system list rather than the one-tap exemption prompt: Play only allows
+    // REQUEST_IGNORE_BATTERY_OPTIMIZATIONS for a few app categories. The row's copy says what to switch off.
+    override fun openBatterySettings() {
+        if (!tryStart(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))) {
+            tryStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
         }
     }
 

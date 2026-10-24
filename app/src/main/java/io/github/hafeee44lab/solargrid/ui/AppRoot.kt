@@ -61,7 +61,7 @@ interface SystemActions {
     fun requestNotifications()
     fun openNotificationSettings()
     fun openFullScreenSettings()
-    fun requestUnrestricted()
+    fun openBatterySettings()
     fun openExactAlarmSettings()
     fun openUrl(url: String)
     fun share(intent: Intent)
